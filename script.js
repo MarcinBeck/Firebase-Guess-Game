@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-// UWAGA: wklej poniżej swój poprawny kod konfiguracyjny
+// Twoja konfiguracja Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDgnmnrBiqwFuFcEDpKsG_7hP2c8C4t30E",
   authDomain: "guess-5d206.firebaseapp.com",
@@ -12,27 +13,28 @@ const firebaseConfig = {
   measurementId: "G-M71PNFJ215"
 };
 
-// Pamiętaj, aby powyższe wartości zastąpić swoimi.
-
-// Zaczynamy test połączenia.
+// Inicjalizacja Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// Ta funkcja próbuje utworzyć dokument o nazwie 'testowy-dokument' w kolekcji 'testowa-kolekcja'.
-// Jeśli się uda, oznacza to, że połączenie działa poprawnie.
+// Funkcja testująca połączenie
 async function testConnection() {
-  try {
-    const testDocRef = doc(db, "testowa-kolekcja", "testowy-dokument");
-    await setDoc(testDocRef, {
-      status: "Połączenie działa",
-      timestamp: new Date().toISOString()
-    });
-    console.log("Sukces! 🔥 Połączenie z bazą danych Firestore działa poprawnie. Sprawdź, czy dokument 'testowy-dokument' pojawił się w konsoli Firebase.");
-  } catch (error) {
-    console.error("Błąd połączenia z bazą danych:", error);
-  }
+    try {
+        // KROK 1: Zaloguj użytkownika anonimowo
+        const userCredential = await signInAnonymously(auth);
+        console.log("Zalogowano anonimowo, UID:", userCredential.user.uid);
+
+        // KROK 2: Po udanym logowaniu zapisz dane do Firestore
+        await setDoc(doc(db, "testowa-kolekcja", "testowy-dokument"), {
+            test: "to jest testowy dokument"
+        });
+        
+        console.log("Połączenie udane, dokument dodano! 🎉");
+    } catch (error) {
+        console.error("Błąd połączenia: ", error);
+    }
 }
 
+// Uruchom test połączenia
 testConnection();
-
-
