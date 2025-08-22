@@ -1,0 +1,107 @@
+body {
+    margin: 0;
+    background: #0f172a;
+    color: #e5e7eb;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+h1 {
+    margin: 16px 0;
+}
+section {
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 20px;
+    margin: 12px 0;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+section h2 {
+    margin-top: 0;
+}
+video {
+    width: 100%;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    background: #000;
+}
+.controls,
+.classes {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
+}
+button {
+    background: #334155;
+    color: #e5e7eb;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+button:hover {
+    background: #475569;
+}
+button:disabled {
+    background: #1e293b;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+.status {
+    margin-top: 12px;
+    font-size: 14px;
+    text-align: center;
+}
+.prediction {
+    font-size: 22px;
+    font-weight: bold;
+    color: #38bdf8;
+    text-align: center;
+    margin-bottom: 16px;
+}
+.feedback {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+.feedback button {
+    font-size: 16px;
+    font-weight: bold;
+}
+.yes {
+    background: #166534;
+}
+.yes:hover {
+    background: #22c55e;
+}
+.no {
+    background: #991b1b;
+}
+.no:hover {
+    background: #ef4444;
+}
+.chooseCorrect {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+.gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+.gallery img {
+    width: 90px;
+    border: 2px solid #374151;
+    border-radius: 6px;
+}
