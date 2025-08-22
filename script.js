@@ -11,6 +11,7 @@ const firebaseConfig = {
   messagingSenderId: "88077227103",
   appId: "1:88077227103:web:90dc97a026d18ea5bcb7ea",
   measurementId: "G-M71PNFJ215"
+  databaseURL: "https://console.firebase.google.com/u/0/project/guess-5d206/database/guess-5d206-default-rtdb/data/~2F"
 };
 
 // Inicjalizacja Firebase
@@ -42,3 +43,4 @@ async function testConnection() {
 }
 
 testConnection();
+
