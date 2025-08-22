@@ -36,3 +36,4 @@ testConnection();
 // WAŻNE: Cały Twój właściwy kod (z klasyfikatorem) tymczasowo usuń
 // Wklej to w jego miejsce
 
+
