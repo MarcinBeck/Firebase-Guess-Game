@@ -8,8 +8,8 @@ const firebaseConfig = {
   projectId: "guess-5d206",
   storageBucket: "guess-5d206.firebasestorage.app",
   messagingSenderId: "88077227103",
-  appId: "1:88077227103:web:90dc97a026d18ea5bcb7ea",
-  measurementId: "G-M71PNFJ215"
+  appId: "1:88077227103:web:4eae99db4fb7e1fcbcb7ea",
+  measurementId: "G-V620WE8CYB"
 };
 
 // Pamiętaj, aby powyższe wartości zastąpić swoimi.
@@ -34,3 +34,4 @@ async function testConnection() {
 }
 
 testConnection();
+
