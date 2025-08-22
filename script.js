@@ -21,20 +21,24 @@ const auth = getAuth(app);
 // Funkcja testująca połączenie
 async function testConnection() {
     try {
-        // KROK 1: Zaloguj użytkownika anonimowo
+        // Logowanie anonimowe
         const userCredential = await signInAnonymously(auth);
         console.log("Zalogowano anonimowo, UID:", userCredential.user.uid);
 
-        // KROK 2: Po udanym logowaniu zapisz dane do Firestore
+        // Zapis prostych danych do Firestore
         await setDoc(doc(db, "testowa-kolekcja", "testowy-dokument"), {
-            test: "to jest testowy dokument"
+            test: "To jest test",
+            timestamp: new Date()
         });
         
-        console.log("Połączenie udane, dokument dodano! 🎉");
+        console.log("Połączenie udane! Dokument testowy dodany.");
     } catch (error) {
         console.error("Błąd połączenia: ", error);
+        // Sprawdź, czy błąd jest typu "invalid-argument"
+        if (error.code === "invalid-argument") {
+            console.error("Błąd: Dane, które próbujesz zapisać, są niepoprawne.");
+        }
     }
 }
 
-// Uruchom test połączenia
 testConnection();
