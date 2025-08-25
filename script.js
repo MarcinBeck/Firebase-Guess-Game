@@ -26,7 +26,7 @@ const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
 async function loadModels() {
   status.textContent = "Inicjalizacja backendu AI...";
   try {
-    // ROZWIĄZANIE: Wymuszamy użycie backendu CPU, który jest wolniejszy, ale działa wszędzie.
+    // KLUCZOWA POPRAWKA: Wymuszamy użycie backendu CPU, który jest wolniejszy, ale działa wszędzie.
     await tf.setBackend('cpu');
     console.log("Backend AI został ustawiony na CPU.");
   } catch (e) {
@@ -146,7 +146,6 @@ async function loadModelFromFirebase() {
         const shape = [data.length / 1024, 1024];
         dataset[key] = tf.tensor2d(data, shape);
     }
-    // ZABEZPIECZENIE: Upewniamy się, że classifier istnieje przed użyciem
     if(classifier) {
         classifier.setClassifierDataset(dataset);
         console.log("Model został wczytany z Firebase.");
