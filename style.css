@@ -93,7 +93,6 @@ button:disabled {
   margin-top: 2rem;
 }
 
-/* NOWE STYLE DLA NAGŁÓWKA I PRZYCISKU CZYSZCZENIA */
 .gallery-header {
   display: flex;
   justify-content: space-between;
@@ -101,15 +100,18 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
+/* ZMIENIONO STYL PRZYCISKU NA SUBTELNIEJSZY LINK */
 .clear-button {
-  font-size: 1.2rem;
-  padding: 0.6rem 1rem;
-  background-color: #4f46e5;
+  font-size: 1.4rem;
+  padding: 0;
+  background: none;
   border: none;
+  color: #94a3b8;
+  text-decoration: underline;
 }
 
 .clear-button:hover:not(:disabled) {
-  background-color: #6366f1;
+  color: #e5e7eb;
 }
 
 .gallery {
