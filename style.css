@@ -161,3 +161,14 @@ button:disabled {
   padding: 0;
   color: #aaa;
 }
+.video-container {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
