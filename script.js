@@ -2,6 +2,7 @@
 
 // --- ELEMENTY UI ---
 const authContainer = document.getElementById('auth-container');
+const mainContent = document.querySelector('main'); // Główna zawartość gry
 const guessInput = document.querySelector('.guess');
 const checkButton = document.querySelector('.check');
 const messageDisplay = document.querySelector('.message');
@@ -15,6 +16,7 @@ const guessesList = document.getElementById('guesses-list');
 // --- ZMIENNE STANU GRY ---
 let secretNumber, score, highscore, currentUser;
 highscore = 0;
+let guessesListener = null; // Przechowuje referencję do listenera Firebase
 
 // --- FUNKCJE POMOCNICZE ---
 const displayMessage = (message) => {
@@ -34,26 +36,23 @@ const resetGame = () => {
 
 // --- LOGIKA FIREBASE ---
 
-// Funkcja do zapisu liczby w bazie danych
 const saveGuess = (number) => {
-  if (!currentUser) return; // Zabezpieczenie, jeśli użytkownik nie jest zalogowany
+  if (!currentUser) return;
   const guessesRef = database.ref('guesses');
   guessesRef.push({
     guessedNumber: number,
     timestamp: Date.now(),
     userId: currentUser.uid,
-  }).then(() => {
-    console.log('Liczba została pomyślnie zapisana w Firebase!');
   }).catch(error => {
     console.error('Błąd zapisu do Firebase:', error);
   });
 };
 
-// Funkcja do nasłuchiwania i wyświetlania prób
 const listenForGuesses = () => {
   const guessesRef = database.ref('guesses');
-  guessesList.innerHTML = ''; // Wyczyść listę przed nowym nasłuchiwaniem
-  guessesRef.on('child_added', snapshot => {
+  guessesList.innerHTML = ''; 
+  // Zapisujemy referencję do listenera, aby móc go później usunąć
+  guessesListener = guessesRef.on('child_added', snapshot => {
     const newGuess = snapshot.val();
     const listItem = document.createElement('li');
     listItem.textContent = `Podano liczbę: ${newGuess.guessedNumber}`;
@@ -61,52 +60,57 @@ const listenForGuesses = () => {
   });
 };
 
-// --- ZARZĄDZANIE STANEM LOGOWANIA ---
+// --- ZARZĄDZANIE STANEM LOGOWANIA (ULEPSZONE UX) ---
 
-// Funkcja wywoływana, gdy użytkownik jest wylogowany
 const handleLoggedOutState = () => {
   currentUser = null;
-  authContainer.innerHTML = '<button id="login-btn">Zaloguj anonimowo</button>';
-  guessInput.disabled = true;
-  checkButton.disabled = true;
-  displayMessage('Zaloguj się, aby zagrać...');
-  guessesList.innerHTML = ''; // Czyści listę prób po wylogowaniu
-
-  document.getElementById('login-btn').addEventListener('click', () => {
-    firebase.auth().signInAnonymously();
+  mainContent.classList.add('hidden'); // Ukryj grę z animacją
+  authContainer.innerHTML = '<button id="login-btn">Zaloguj jako Gość</button>';
+  
+  const loginButton = document.getElementById('login-btn');
+  loginButton.addEventListener('click', () => {
+    // UX: Pokaż stan ładowania
+    loginButton.textContent = 'Logowanie...';
+    loginButton.disabled = true;
+    firebase.auth().signInAnonymously().catch(error => {
+        // Jeśli błąd, przywróć przycisk do stanu początkowego
+        console.error("Błąd logowania:", error);
+        loginButton.textContent = 'Zaloguj jako Gość';
+        loginButton.disabled = false;
+    });
   });
+
+  // Zatrzymaj nasłuchiwanie, gdy użytkownik jest wylogowany
+  if(guessesListener) {
+    database.ref('guesses').off('child_added', guessesListener);
+  }
 };
 
-// Funkcja wywoływana, gdy użytkownik jest zalogowany
 const handleLoggedInState = (user) => {
   currentUser = user;
+  mainContent.classList.remove('hidden'); // Pokaż grę z animacją
   authContainer.innerHTML = `
-    <span class="user-uid">UID: ${user.uid.substring(0, 8)}...</span>
-    <button id="logout-btn">Wyloguj</button>
+    <span class="welcome-message">Witaj, Gościu!</span>
+    <button id="logout-btn" class="logout-btn">Wyloguj</button>
   `;
-  guessInput.disabled = false;
-  checkButton.disabled = false;
-  resetGame(); // Resetuj grę po zalogowaniu
-  listenForGuesses(); // Zacznij nasłuchiwać na próby
 
   document.getElementById('logout-btn').addEventListener('click', () => {
     firebase.auth().signOut();
   });
+  
+  resetGame();
+  listenForGuesses();
 };
 
-// Główny "słuchacz" stanu autentykacji
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
-    // Użytkownik jest zalogowany
     handleLoggedInState(user);
   } else {
-    // Użytkownik jest wylogowany
     handleLoggedOutState();
   }
 });
 
-// --- LOGIKA GRY ---
-
+// --- LOGIKA GRY (BEZ ZMIAN) ---
 checkButton.addEventListener('click', () => {
   const guess = Number(guessInput.value);
 
