@@ -1,57 +1,99 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <link rel="stylesheet" href="style.css" />
-    <title>Zgadnij numer!</title>
-  </head>
-  <body>
-    <header>
-      <h1>Zgadnij numer!</h1>
-      <p class="between">(Od 1 do 20)</p>
-      <button class="btn again">Jeszcze raz!</button>
-      <div class="number">?</div>
-    </header>
-    <main>
-      <section class="left">
-        <input type="number" class="guess" />
-        <button class="btn check">Sprawdź!</button>
-      </section>
-      <section class="right">
-        <p class="message">Zacznij zgadywać...</p>
-        <p class="label-score">💯 Wynik: <span class="score">20</span></p>
-        <p class="label-highscore">
-          🥇 Najlepszy wynik: <span class="highscore">0</span>
-        </p>
-      </section>
-      <section class="history">
-        <h2>Ostatnie próby:</h2>
-        <ul id="guesses-list"></ul>
-      </section>
-    </main>
-    
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+'use strict';
 
-    <script>
-      // Poprawiona konfiguracja Firebase
-      var firebaseConfig = {
-        apiKey: "AIzaSyDQk4-s9e_tZ5c_r7oG8bX_yL9vF2jO3w",
-        authDomain: "guess-game-35a3b.firebaseapp.com",
-        databaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "guess-game-35a3b",
-        storageBucket: "guess-game-35a3b.appspot.com",
-        messagingSenderId: "1083984624029",
-        appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
-      };
-      // Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-      // Inicjalizacja bazy danych została przeniesiona tutaj
-      const database = firebase.database(); 
-    </script>
+// Usunięto stąd linię: const database = firebase.database();
+
+// Referencja do kolekcji 'guesses' w bazie danych
+const guessesRef = database.ref('guesses');
+
+let secretNumber = Math.trunc(Math.random() * 20) + 1;
+let score = 20;
+let highscore = 0;
+
+const displayMessage = function (message) {
+  document.querySelector('.message').textContent = message;
+};
+
+// Funkcja do zapisu liczby w Firebase
+function saveGuess(number) {
+  // .push() tworzy unikalny klucz dla każdego nowego zapisu
+  guessesRef.push({
+      guessedNumber: number,
+      timestamp: Date.now()
+    })
+    .then(() => {
+      console.log('Liczba została pomyślnie zapisana w Firebase!');
+    })
+    .catch(error => {
+      console.error('Błąd zapisu do Firebase:', error);
+    });
+}
+
+// Funkcja do odczytu i wyświetlania danych z Firebase
+function listenForGuesses() {
+  const guessesList = document.getElementById('guesses-list');
+  
+  // Listener, który reaguje na każdy nowy wpis ('child_added') w kolekcji 'guesses'
+  guessesRef.on('child_added', snapshot => {
+    const newGuess = snapshot.val();
+    const guessNumber = newGuess.guessedNumber;
     
-    <script src="script.js"></script>
-  </body>
-</html>
+    // Tworzymy nowy element <li> i dodajemy go na początek listy
+    const listItem = document.createElement('li');
+    listItem.textContent = `Podano liczbę: ${guessNumber}`;
+    guessesList.prepend(listItem); // prepend() dodaje na górze listy
+  });
+}
+
+// Uruchomienie nasłuchiwania na dane przy starcie aplikacji
+listenForGuesses();
+
+document.querySelector('.check').addEventListener('click', function () {
+  const guess = Number(document.querySelector('.guess').value);
+  console.log(guess, typeof guess);
+
+  // Gdy nie ma liczby
+  if (!guess) {
+    displayMessage('⛔️ Nie wpisano liczby!');
+
+    // Gdy gracz wygra
+  } else if (guess === secretNumber) {
+    displayMessage('🎉 Poprawna liczba!');
+    document.querySelector('.number').textContent = secretNumber;
+    document.querySelector('body').style.backgroundColor = '#60b347';
+    document.querySelector('.number').style.width = '30rem';
+
+    if (score > highscore) {
+      highscore = score;
+      document.querySelector('.highscore').textContent = highscore;
+    }
+
+    // Gdy liczba jest inna niż sekretna
+  } else if (guess !== secretNumber) {
+    if (score > 1) {
+      displayMessage(guess > secretNumber ? '📈 Za wysoko!' : '📉 Za nisko!');
+      score--;
+      document.querySelector('.score').textContent = score;
+    } else {
+      displayMessage('💥 Przegrałeś grę!');
+      document.querySelector('.score').textContent = 0;
+    }
+  }
+
+  // Zapisz próbę do Firebase, jeśli podano jakąś liczbę
+  if (guess) {
+    saveGuess(guess);
+  }
+});
+
+document.querySelector('.again').addEventListener('click', function () {
+  score = 20;
+  secretNumber = Math.trunc(Math.random() * 20) + 1;
+
+  displayMessage('Zacznij zgadywać...');
+  document.querySelector('.score').textContent = score;
+  document.querySelector('.number').textContent = '?';
+  document.querySelector('.guess').value = '';
+
+  document.querySelector('body').style.backgroundColor = '#222';
+  document.querySelector('.number').style.width = '15rem';
+});
