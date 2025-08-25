@@ -2,106 +2,167 @@
 
 // --- ELEMENTY UI ---
 const authContainer = document.getElementById('auth-container');
-const mainContent = document.querySelector('main'); // Główna zawartość gry
-const guessInput = document.querySelector('.guess');
-const checkButton = document.querySelector('.check');
-const messageDisplay = document.querySelector('.message');
-const scoreDisplay = document.querySelector('.score');
-const numberDisplay = document.querySelector('.number');
-const bodyElement = document.querySelector('body');
-const highscoreDisplay = document.querySelector('.highscore');
-const againButton = document.querySelector('.again');
-const guessesList = document.getElementById('guesses-list');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const classButtons = document.querySelectorAll('.classes button');
+const predictBtn = document.getElementById('predictBtn');
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const gallery = document.getElementById('gallery');
+const status = document.getElementById('status');
+const predictionEl = document.getElementById('prediction');
 
-// --- ZMIENNE STANU GRY ---
-let secretNumber, score, highscore, currentUser;
-highscore = 0;
-let guessesListener = null; // Przechowuje referencję do listenera Firebase
+// --- ZMIENNE GLOBALNE ---
+let currentUser = null;
+let currentStream = null;
+let classifier;
+let net;
+const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 
-// --- FUNKCJE POMOCNICZE ---
-const displayMessage = (message) => {
-  messageDisplay.textContent = message;
-};
+// --- FUNKCJE AI i KAMERY ---
 
-const resetGame = () => {
-  score = 20;
-  secretNumber = Math.trunc(Math.random() * 20) + 1;
-  displayMessage('Zacznij zgadywać...');
-  scoreDisplay.textContent = score;
-  numberDisplay.textContent = '?';
-  guessInput.value = '';
-  bodyElement.style.backgroundColor = '#222';
-  numberDisplay.style.width = '15rem';
-};
+// Funkcja do serializacji (zapisu) tensora do formatu JSON
+const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
+
+// Główna funkcja ładująca modele AI
+async function loadModels() {
+  status.textContent = "Ładowanie modelu MobileNet...";
+  try {
+    net = await mobilenet.load();
+    classifier = knnClassifier.create();
+    status.textContent = "Modele gotowe. Zaloguj się, aby zacząć.";
+  } catch (e) {
+    status.textContent = "Błąd ładowania modeli AI.";
+    console.error(e);
+  }
+}
+
+function startCamera() {
+  stopCamera();
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      currentStream = stream;
+      video.srcObject = stream;
+      video.play();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      classButtons.forEach(btn => btn.disabled = false);
+      predictBtn.disabled = false;
+    }).catch(err => alert("Błąd kamery: " + err.message));
+}
+
+function stopCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+    currentStream = null;
+  }
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  classButtons.forEach(btn => btn.disabled = true);
+  predictBtn.disabled = true;
+}
+
+async function takeSnapshot(label) {
+  const ctx = canvas.getContext('2d');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const img = document.createElement('img');
+  img.src = canvas.toDataURL('image/png');
+  gallery.appendChild(img);
+
+  const logits = net.infer(canvas, true);
+  classifier.addExample(logits, label);
+  
+  await saveModel(); // Zapisz model w Firebase po dodaniu próbki
+  updateStatus();
+}
+
+async function predict() {
+  if (classifier.getNumClasses() === 0) {
+    predictionEl.textContent = "Najpierw dodaj próbki!";
+    return;
+  }
+  const logits = net.infer(video, true);
+  const result = await classifier.predictClass(logits);
+  predictionEl.textContent = `Wynik: ${result.label} (pewność ${(result.confidences[result.label] * 100).toFixed(1)}%)`;
+}
+
+function updateStatus() {
+  const counts = classifier.getClassExampleCount();
+  status.textContent = classNames.map(name => `${name}: ${counts[name] || 0}`).join(' | ');
+}
 
 // --- LOGIKA FIREBASE ---
 
-const saveGuess = (number) => {
+// Funkcja zapisująca model AI w bazie danych
+async function saveModel() {
   if (!currentUser) return;
-  const guessesRef = database.ref('guesses');
-  guessesRef.push({
-    guessedNumber: number,
-    timestamp: Date.now(),
-    userId: currentUser.uid,
-  }).catch(error => {
-    console.error('Błąd zapisu do Firebase:', error);
-  });
-};
-
-const listenForGuesses = () => {
-  const guessesRef = database.ref('guesses');
-  guessesList.innerHTML = ''; 
-  // Zapisujemy referencję do listenera, aby móc go później usunąć
-  guessesListener = guessesRef.on('child_added', snapshot => {
-    const newGuess = snapshot.val();
-    const listItem = document.createElement('li');
-    listItem.textContent = `Podano liczbę: ${newGuess.guessedNumber}`;
-    guessesList.prepend(listItem);
-  });
-};
-
-// --- ZARZĄDZANIE STANEM LOGOWANIA (ULEPSZONE UX) ---
-
-const handleLoggedOutState = () => {
-  currentUser = null;
-  mainContent.classList.add('hidden'); // Ukryj grę z animacją
-  authContainer.innerHTML = '<button id="login-btn">Zaloguj jako Gość</button>';
   
-  const loginButton = document.getElementById('login-btn');
-  loginButton.addEventListener('click', () => {
-    // UX: Pokaż stan ładowania
-    loginButton.textContent = 'Logowanie...';
-    loginButton.disabled = true;
-    firebase.auth().signInAnonymously().catch(error => {
-        // Jeśli błąd, przywróć przycisk do stanu początkowego
-        console.error("Błąd logowania:", error);
-        loginButton.textContent = 'Zaloguj jako Gość';
-        loginButton.disabled = false;
-    });
-  });
-
-  // Zatrzymaj nasłuchiwanie, gdy użytkownik jest wylogowany
-  if(guessesListener) {
-    database.ref('guesses').off('child_added', guessesListener);
+  const dataset = classifier.getClassifierDataset();
+  const serializedDataset = {};
+  for (const key of Object.keys(dataset)) {
+    serializedDataset[key] = tensorToJSON(dataset[key]);
   }
-};
-
-const handleLoggedInState = (user) => {
-  currentUser = user;
-  mainContent.classList.remove('hidden'); // Pokaż grę z animacją
-  authContainer.innerHTML = `
-    <span class="welcome-message">Witaj, Gościu!</span>
-    <button id="logout-btn" class="logout-btn">Wyloguj</button>
-  `;
-
-  document.getElementById('logout-btn').addEventListener('click', () => {
-    firebase.auth().signOut();
-  });
   
-  resetGame();
-  listenForGuesses();
-};
+  const modelPath = `models/${currentUser.uid}`;
+  await database.ref(modelPath).set(serializedDataset);
+  console.log("Model został zapisany w Firebase.");
+}
 
+// Funkcja wczytująca model AI z bazy danych
+async function loadModelFromFirebase() {
+  if (!currentUser) return;
+
+  const modelPath = `models/${currentUser.uid}`;
+  const snapshot = await database.ref(modelPath).once('value');
+  const serializedDataset = snapshot.val();
+
+  if (serializedDataset) {
+    const dataset = {};
+    for (const key of Object.keys(serializedDataset)) {
+        const data = serializedDataset[key];
+        const shape = [data.length / 1024, 1024]; // MobileNet logits shape
+        dataset[key] = tf.tensor2d(data, shape);
+    }
+    classifier.setClassifierDataset(dataset);
+    console.log("Model został wczytany z Firebase.");
+  } else {
+    console.log("Nie znaleziono zapisanego modelu dla tego użytkownika.");
+  }
+  updateStatus();
+}
+
+
+// --- ZARZĄDZANIE STANEM LOGOWANIA ---
+
+function handleLoggedOutState() {
+  currentUser = null;
+  stopCamera();
+  authContainer.innerHTML = '<button id="login-btn">Zaloguj jako Gość</button>';
+  status.textContent = "Zaloguj się, aby rozpocząć.";
+  predictionEl.textContent = "";
+  gallery.innerHTML = "";
+  classifier.clearAllClasses();
+
+  document.getElementById('login-btn').addEventListener('click', () => {
+    firebase.auth().signInAnonymously();
+  });
+}
+
+async function handleLoggedInState(user) {
+  currentUser = user;
+  authContainer.innerHTML = `<span class="welcome-message">Witaj, Gościu!</span><button id="logout-btn" class="logout-btn">Wyloguj</button>`;
+  document.getElementById('logout-btn').addEventListener('click', () => firebase.auth().signOut());
+  
+  status.textContent = "Wczytywanie zapisanego modelu...";
+  await loadModelFromFirebase();
+}
+
+// --- INICJALIZACJA APLIKACJI ---
+
+// Główny "słuchacz" stanu autentykacji
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
     handleLoggedInState(user);
@@ -110,34 +171,13 @@ firebase.auth().onAuthStateChanged(user => {
   }
 });
 
-// --- LOGIKA GRY (BEZ ZMIAN) ---
-checkButton.addEventListener('click', () => {
-  const guess = Number(guessInput.value);
-
-  if (!guess) {
-    displayMessage('⛔️ Nie wpisano liczby!');
-  } else if (guess === secretNumber) {
-    displayMessage('🎉 Poprawna liczba!');
-    numberDisplay.textContent = secretNumber;
-    bodyElement.style.backgroundColor = '#60b347';
-    numberDisplay.style.width = '30rem';
-    if (score > highscore) {
-      highscore = score;
-      highscoreDisplay.textContent = highscore;
-    }
-  } else if (guess !== secretNumber) {
-    if (score > 1) {
-      displayMessage(guess > secretNumber ? '📈 Za wysoko!' : '📉 Za nisko!');
-      score--;
-      scoreDisplay.textContent = score;
-    } else {
-      displayMessage('💥 Przegrałeś grę!');
-      scoreDisplay.textContent = 0;
-    }
-  }
-  if (guess) {
-    saveGuess(guess);
-  }
+// Event Listeners dla przycisków
+startBtn.addEventListener('click', startCamera);
+stopBtn.addEventListener('click', stopCamera);
+classButtons.forEach(btn => {
+  btn.addEventListener('click', () => takeSnapshot(btn.dataset.class));
 });
+predictBtn.addEventListener('click', predict);
 
-againButton.addEventListener('click', resetGame);
+// Start!
+loadModels();
