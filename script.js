@@ -21,19 +21,28 @@ const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 
 // --- FUNKCJE AI i KAMERY ---
 
-// Funkcja do serializacji (zapisu) tensora do formatu JSON
 const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
 
-// Główna funkcja ładująca modele AI
 async function loadModels() {
+  status.textContent = "Inicjalizacja backendu AI...";
+  try {
+    // POPRAWKA: Jawne ustawienie backendu WebGL. Jeśli się nie uda, TF.js spróbuje użyć CPU.
+    await tf.setBackend('webgl');
+    console.log("Backend AI ustawiony na WebGL.");
+  } catch (e) {
+    console.warn("Nie udało się zainicjować backendu WebGL, próba użycia CPU. Wydajność może być niższa.");
+  }
+
   status.textContent = "Ładowanie modelu MobileNet...";
   try {
     net = await mobilenet.load();
     classifier = knnClassifier.create();
     status.textContent = "Modele gotowe. Zaloguj się, aby zacząć.";
+    return true; // Zwracamy true, jeśli wszystko się udało
   } catch (e) {
-    status.textContent = "Błąd ładowania modeli AI.";
+    status.textContent = "Błąd krytyczny ładowania modeli AI.";
     console.error(e);
+    return false; // Zwracamy false w razie błędu
   }
 }
 
@@ -75,7 +84,7 @@ async function takeSnapshot(label) {
   const logits = net.infer(canvas, true);
   classifier.addExample(logits, label);
   
-  await saveModel(); // Zapisz model w Firebase po dodaniu próbki
+  await saveModel();
   updateStatus();
 }
 
@@ -90,17 +99,21 @@ async function predict() {
 }
 
 function updateStatus() {
-  const counts = classifier.getClassExampleCount();
-  status.textContent = classNames.map(name => `${name}: ${counts[name] || 0}`).join(' | ');
+  // POPRAWKA: Sprawdzamy, czy classifier istnieje, zanim go użyjemy
+  if (classifier) {
+    const counts = classifier.getClassExampleCount();
+    status.textContent = classNames.map(name => `${name}: ${counts[name] || 0}`).join(' | ');
+  }
 }
 
 // --- LOGIKA FIREBASE ---
-
-// Funkcja zapisująca model AI w bazie danych
 async function saveModel() {
-  if (!currentUser) return;
+  if (!currentUser || !classifier) return;
   
   const dataset = classifier.getClassifierDataset();
+  // Zabezpieczenie przed zapisem pustego modelu
+  if (Object.keys(dataset).length === 0) return;
+
   const serializedDataset = {};
   for (const key of Object.keys(dataset)) {
     serializedDataset[key] = tensorToJSON(dataset[key]);
@@ -111,9 +124,8 @@ async function saveModel() {
   console.log("Model został zapisany w Firebase.");
 }
 
-// Funkcja wczytująca model AI z bazy danych
 async function loadModelFromFirebase() {
-  if (!currentUser) return;
+  if (!currentUser || !classifier) return;
 
   const modelPath = `models/${currentUser.uid}`;
   const snapshot = await database.ref(modelPath).once('value');
@@ -123,7 +135,7 @@ async function loadModelFromFirebase() {
     const dataset = {};
     for (const key of Object.keys(serializedDataset)) {
         const data = serializedDataset[key];
-        const shape = [data.length / 1024, 1024]; // MobileNet logits shape
+        const shape = [data.length / 1024, 1024];
         dataset[key] = tf.tensor2d(data, shape);
     }
     classifier.setClassifierDataset(dataset);
@@ -134,9 +146,7 @@ async function loadModelFromFirebase() {
   updateStatus();
 }
 
-
 // --- ZARZĄDZANIE STANEM LOGOWANIA ---
-
 function handleLoggedOutState() {
   currentUser = null;
   stopCamera();
@@ -144,7 +154,7 @@ function handleLoggedOutState() {
   status.textContent = "Zaloguj się, aby rozpocząć.";
   predictionEl.textContent = "";
   gallery.innerHTML = "";
-  classifier.clearAllClasses();
+  if(classifier) classifier.clearAllClasses();
 
   document.getElementById('login-btn').addEventListener('click', () => {
     firebase.auth().signInAnonymously();
@@ -161,17 +171,21 @@ async function handleLoggedInState(user) {
 }
 
 // --- INICJALIZACJA APLIKACJI ---
-
-// Główny "słuchacz" stanu autentykacji
-firebase.auth().onAuthStateChanged(user => {
-  if (user) {
-    handleLoggedInState(user);
-  } else {
-    handleLoggedOutState();
+async function main() {
+  const modelsLoaded = await loadModels();
+  // POPRAWKA: Logika logowania uruchamia się DOPIERO po załadowaniu modeli
+  if (modelsLoaded) {
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        handleLoggedInState(user);
+      } else {
+        handleLoggedOutState();
+      }
+    });
   }
-});
+}
 
-// Event Listeners dla przycisków
+// Event Listeners
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
 classButtons.forEach(btn => {
@@ -180,4 +194,4 @@ classButtons.forEach(btn => {
 predictBtn.addEventListener('click', predict);
 
 // Start!
-loadModels();
+main();
