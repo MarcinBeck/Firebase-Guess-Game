@@ -1,68 +1,42 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Krok 5 — Lepszy interfejs</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zgadnij Liczbę z Firebase</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>🧠 Demo AI — Uczymy kształty</h1>
 
-    <section>
-        <h2>Trening</h2>
-        <video id="video" autoplay playsinline></video>
-        <div class="controls">
-            <button id="startBtn">Start kamera</button>
-            <button id="stopBtn" disabled>Stop kamera</button>
-        </div>
-        <div class="classes">
-            <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
-            <button data-class="KRZYŻYK" disabled>Dodaj KRZYŻYK</button>
-            <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
-        </div>
-        <div class="status" id="status"></div>
-    </section>
+    <div class="container">
+        <h1>Zgadnij liczbę od 1 do 100</h1>
+        <p>Masz 10 prób, aby odgadnąć liczbę wylosowaną przez komputer.</p>
 
-    <section>
-        <h2>Zgadywanie</h2>
-        <div class="prediction" id="prediction">Brak predykcji</div>
-        <div class="controls">
-            <button id="predictBtn" disabled>Zgadnij</button>
+        <div class="form">
+            <label for="guessField">Podaj liczbę:</label>
+            <input type="text" id="guessField" class="guessField">
+            <input type="submit" value="Zgadnij" class="guessSubmit">
         </div>
-        <div class="feedback" id="feedback" style="display:none;">
-            <button class="yes" id="yesBtn">✅ Tak</button>
-            <button class="no" id="noBtn">❌ Nie</button>
-        </div>
-        <div class="chooseCorrect" id="chooseCorrect" style="display:none;">
-            <button data-true="KOŁO">KOŁO</button>
-            <button data-true="KRZYŻYK">KRZYŻYK</button>
-            <button data-true="TRÓJKĄT">TRÓJKĄT</button>
-        </div>
-    </section>
 
-    <section>
-        <h2>Zebrane próbki</h2>
-        <details>
-            <summary>Pokaż / ukryj galerię</summary>
-            <div class="gallery" id="gallery"></div>
-        </details>
-        <div class="controls">
-            <button id="clearBtn">Wyczyść dane</button>
+        <div class="resultParas">
+            <p class="guesses"></p>
+            <p class="lastResult"></p>
+            <p class="lowOrHi"></p>
         </div>
-    </section>
 
-    <canvas id="canvas" style="display:none;"></canvas>
+        <button class="newGameButton" style="display: none;">Rozpocznij nową grę</button>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    
-<script src="script.js" type="module"></script>
+    <div class="leaderboard-container">
+        <h2>Tabela Wyników (TOP 10)</h2>
+        <ul id="leaderboard"></ul>
+    </div>
+
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+
+    <script type="module" src="script.js"></script>
+
 </body>
-
 </html>
-
