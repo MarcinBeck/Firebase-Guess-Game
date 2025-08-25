@@ -11,7 +11,7 @@ const canvas = document.getElementById('canvas');
 const gallery = document.getElementById('gallery');
 const status = document.getElementById('status');
 const predictionEl = document.getElementById('prediction');
-const clearBtn = document.getElementById('clearBtn'); // NOWY PRZYCISK
+const clearBtn = document.getElementById('clearBtn');
 
 // --- ZMIENNE GLOBALNE ---
 let currentUser = null;
@@ -114,9 +114,11 @@ async function saveModel() {
   if (!currentUser || !classifier) return;
   
   const dataset = classifier.getClassifierDataset();
+  const modelPath = `models/${currentUser.uid}`;
+
   if (Object.keys(dataset).length === 0) {
-      // Jeśli model jest pusty, usuwamy go z bazy
-      await clearDataFromFirebase();
+      await database.ref(modelPath).remove();
+      console.log("Model lokalny jest pusty, usunięto wpis w Firebase.");
       return;
   };
 
@@ -125,13 +127,14 @@ async function saveModel() {
     serializedDataset[key] = tensorToJSON(dataset[key]);
   }
   
-  const modelPath = `models/${currentUser.uid}`;
   await database.ref(modelPath).set(serializedDataset);
   console.log("Model został zapisany w Firebase.");
 }
 
 async function loadModelFromFirebase() {
   if (!currentUser || !classifier) return;
+  classifier.clearAllClasses(); // Wyczyść stary model przed załadowaniem nowego
+  gallery.innerHTML = ""; // Wyczyść galerię przed załadowaniem nowego modelu
 
   const modelPath = `models/${currentUser.uid}`;
   const snapshot = await database.ref(modelPath).once('value');
@@ -154,33 +157,36 @@ async function loadModelFromFirebase() {
   updateStatus();
 }
 
-// NOWA FUNKCJA DO CZYSZCZENIA DANYCH
+// POPRAWIONA I BARDZIEJ ROZBUDOWANA FUNKCJA CZYSZCZENIA DANYCH
 async function clearData() {
-    if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki? Ta operacja jest nieodwracalna.")) {
+    if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki z bazy danych?")) {
         return;
     }
     
-    // 1. Wyczyść model w pamięci
-    if (classifier) {
-        classifier.clearAllClasses();
-    }
-    
-    // 2. Wyczyść galerię
-    gallery.innerHTML = "";
-    
-    // 3. Wyczyść dane w Firebase
-    await clearDataFromFirebase();
-    
-    // 4. Zaktualizuj status
-    updateStatus();
-    predictionEl.textContent = "Wyczyszczono dane. Możesz zacząć naukę od nowa.";
-    console.log("Wszystkie dane zostały usunięte.");
-}
+    try {
+      // 1. Wyczyść dane w Firebase
+      if (currentUser) {
+        const modelPath = `models/${currentUser.uid}`;
+        await database.ref(modelPath).remove();
+        console.log("Dane z Firebase zostały usunięte.");
+      }
+      
+      // 2. Wyczyść model w pamięci (lokalnie)
+      if (classifier) {
+          classifier.clearAllClasses();
+      }
+      
+      // 3. Wyczyść galerię i komunikaty
+      gallery.innerHTML = "";
+      predictionEl.textContent = "Wyczyszczono dane. Zacznij naukę od nowa.";
+      
+      // 4. Zaktualizuj status
+      updateStatus();
 
-async function clearDataFromFirebase() {
-    if (!currentUser) return;
-    const modelPath = `models/${currentUser.uid}`;
-    await database.ref(modelPath).remove();
+    } catch (error) {
+      console.error("Błąd podczas czyszczenia danych:", error);
+      alert("Wystąpił błąd podczas czyszczenia danych.");
+    }
 }
 
 
@@ -192,7 +198,7 @@ function handleLoggedOutState() {
   status.textContent = "Zaloguj się, aby rozpocząć.";
   predictionEl.textContent = "";
   gallery.innerHTML = "";
-  clearBtn.disabled = true; // Zablokuj przycisk czyszczenia
+  clearBtn.disabled = true;
   if(classifier) classifier.clearAllClasses();
 
   document.getElementById('login-btn').addEventListener('click', () => {
@@ -205,7 +211,7 @@ async function handleLoggedInState(user) {
   authContainer.innerHTML = `<span class="welcome-message">Witaj, Gościu!</span><button id="logout-btn" class="logout-btn">Wyloguj</button>`;
   document.getElementById('logout-btn').addEventListener('click', () => firebase.auth().signOut());
   
-  clearBtn.disabled = false; // Odblokuj przycisk czyszczenia
+  clearBtn.disabled = false;
   status.textContent = "Wczytywanie zapisanego modelu...";
   await loadModelFromFirebase();
 }
@@ -227,7 +233,7 @@ async function main() {
 // Event Listeners
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
-clearBtn.addEventListener('click', clearData); // NOWY EVENT LISTENER
+clearBtn.addEventListener('click', clearData);
 classButtons.forEach(btn => {
   btn.addEventListener('click', () => takeSnapshot(btn.dataset.class));
 });
