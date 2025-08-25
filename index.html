@@ -1,62 +1,48 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zgadnij Liczbę z Firebase</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".MainActivity">
 
-    <div id="auth-container">
-        <h2>Zaloguj się lub zarejestruj</h2>
-        <div id="auth-forms">
-            <input type="email" id="emailField" placeholder="E-mail">
-            <input type="password" id="passwordField" placeholder="Hasło">
-            <button id="registerButton">Zarejestruj</button>
-            <button id="loginButton">Zaloguj</button>
-        </div>
-        <div id="user-info" style="display: none;">
-            <p>Zalogowano jako: <span id="userEmail"></span></p>
-            <div class="profile-management">
-                <input type="text" id="nameField" placeholder="Twoja nazwa w grze">
-                <button id="saveNameButton">Zapisz nazwę</button>
-            </div>
-            <button id="logoutButton">Wyloguj</button>
-        </div>
-        <p id="authError" class="error-message"></p>
-    </div>
+    <EditText
+        android:id="@+id/value_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Wpisz wartość do zapisania"
+        android:inputType="text"
+        android:layout_marginBottom="16dp"/>
 
-    <div id="game-container" style="display: none;">
-        <div class="container">
-            <h1>Zgadnij liczbę od 1 do 100</h1>
-            <p>Masz 10 prób, aby odgadnąć liczbę wylosowaną przez komputer.</p>
-    
-            <div class="form">
-                <label for="guessField">Podaj liczbę:</label>
-                <input type="text" id="guessField" class="guessField">
-                <input type="submit" value="Zgadnij" class="guessSubmit">
-            </div>
-    
-            <div class="resultParas">
-                <p class="guesses"></p>
-                <p class="lastResult"></p>
-                <p class="lowOrHi"></p>
-            </div>
-    
-            <button class="newGameButton" style="display: none;">Rozpocznij nową grę</button>
-        </div>
-    
-        <div class="leaderboard-container">
-            <h2>Tabela Wyników (TOP 10)</h2>
-            <ul id="leaderboard"></ul>
-        </div>
-    </div>
+    <Button
+        android:id="@+id/save_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Zapisz w bazie"/>
 
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    <script type="module" src="script.js"></script>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dotychczasowe wartości z bazy:"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginTop="24dp"/>
 
-</body>
-</html>
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/database_content_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            tools:text="Tutaj pojawią się dane..."/>
+
+    </ScrollView>
+
+</LinearLayout>
