@@ -1,209 +1,100 @@
-// Importy Firebase z nowymi funkcjami
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { 
-    getAuth, 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    signOut, 
-    onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+'use strict';
 
-//
-// ❗ WAŻNE: Wklej tutaj swoją konfigurację Firebase.
-//
-const firebaseConfig = {
-  apiKey: "AIzaSyDgnmnrBiqwFuFcEDpKsG_7hP2c8C4t30E",
-  authDomain: "guess-5d206.firebaseapp.com",
-  projectId: "guess-5d206",
-  storageBucket: "guess-5d206.firebasestorage.app",
-  messagingSenderId: "88077227103",
-  appId: "1:88077227103:web:90dc97a026d18ea5bcb7ea",
-  measurementId: "G-M71PNFJ215",
-  detabaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app/"
+// Inicjalizacja Firebase Realtime Database
+const database = firebase.database();
+
+// Referencja do kolekcji 'guesses' w bazie danych
+const guessesRef = database.ref('guesses');
+
+let secretNumber = Math.trunc(Math.random() * 20) + 1;
+let score = 20;
+let highscore = 0;
+
+const displayMessage = function (message) {
+  document.querySelector('.message').textContent = message;
 };
 
-// Inicjalizacja Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
-
-// --- SEKCJA AUTENTYKACJI ---
-
-// Elementy DOM dla autentykacji
-const authForms = document.getElementById('auth-forms');
-const userInfo = document.getElementById('user-info');
-const gameContainer = document.getElementById('game-container');
-const emailField = document.getElementById('emailField');
-const passwordField = document.getElementById('passwordField');
-const registerButton = document.getElementById('registerButton');
-const loginButton = document.getElementById('loginButton');
-const logoutButton = document.getElementById('logoutButton');
-const userEmailSpan = document.getElementById('userEmail');
-const authError = document.getElementById('authError');
-
-// Rejestracja nowego użytkownika
-registerButton.addEventListener('click', () => {
-    const email = emailField.value;
-    const password = passwordField.value;
-    createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            console.log("Zarejestrowano pomyślnie:", userCredential.user.email);
-            authError.textContent = '';
-        })
-        .catch((error) => {
-            console.error("Błąd rejestracji:", error.message);
-            authError.textContent = "Błąd rejestracji: " + error.message;
-        });
-});
-
-// Logowanie istniejącego użytkownika
-loginButton.addEventListener('click', () => {
-    const email = emailField.value;
-    const password = passwordField.value;
-    signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            console.log("Zalogowano pomyślnie:", userCredential.user.email);
-            authError.textContent = '';
-        })
-        .catch((error) => {
-            console.error("Błąd logowania:", error.message);
-            authError.textContent = "Błąd logowania: " + error.message;
-        });
-});
-
-// Wylogowanie
-logoutButton.addEventListener('click', () => {
-    signOut(auth).then(() => {
-        console.log("Wylogowano pomyślnie.");
+// Funkcja do zapisu liczby w Firebase
+function saveGuess(number) {
+  // .push() tworzy unikalny klucz dla każdego nowego zapisu
+  guessesRef.push({
+      guessedNumber: number,
+      timestamp: Date.now()
+    })
+    .then(() => {
+      console.log('Liczba została pomyślnie zapisana w Firebase!');
+    })
+    .catch(error => {
+      console.error('Błąd zapisu do Firebase:', error);
     });
-});
-
-// Główny obserwator stanu autentykacji
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // Użytkownik jest zalogowany
-        userEmailSpan.textContent = user.email;
-        authForms.style.display = 'none';
-        userInfo.style.display = 'block';
-        gameContainer.style.display = 'block';
-
-        // Uruchomienie gry
-        setupNewGame();
-        displayLeaderboard();
-    } else {
-        // Użytkownik jest wylogowany
-        authForms.style.display = 'block';
-        userInfo.style.display = 'none';
-        gameContainer.style.display = 'none';
-    }
-});
-
-
-// --- SEKCJA GRY ---
-
-// Elementy DOM gry
-const guesses = document.querySelector('.guesses');
-const lastResult = document.querySelector('.lastResult');
-const lowOrHi = document.querySelector('.lowOrHi');
-const guessSubmit = document.querySelector('.guessSubmit');
-const guessField = document.querySelector('.guessField');
-const newGameButton = document.querySelector('.newGameButton');
-const leaderboardList = document.getElementById('leaderboard');
-
-// Zmienne gry
-let randomNumber;
-let guessCount;
-
-function setupNewGame() {
-    guessCount = 1;
-    guesses.textContent = '';
-    lastResult.textContent = '';
-    lowOrHi.textContent = '';
-    newGameButton.style.display = 'none';
-    guessField.disabled = false;
-    guessSubmit.disabled = false;
-    guessField.value = '';
-    guessField.focus();
-    lastResult.style.backgroundColor = 'white';
-    randomNumber = Math.floor(Math.random() * 100) + 1;
 }
 
-function checkGuess() {
-    const userGuess = Number(guessField.value);
-    if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) {
-        lowOrHi.textContent = 'Proszę wpisać liczbę od 1 do 100.';
-        return;
-    }
-
-    if (guessCount === 1) guesses.textContent = 'Poprzednie typy: ';
-    guesses.textContent += userGuess + ' ';
-
-    if (userGuess === randomNumber) {
-        lastResult.textContent = 'Gratulacje! Zgadłeś!';
-        lastResult.style.backgroundColor = 'green';
-        lowOrHi.textContent = '';
-        setGameOver(true);
-    } else if (guessCount === 10) {
-        lastResult.textContent = 'KONIEC GRY!';
-        lowOrHi.textContent = `Prawidłowa liczba to: ${randomNumber}`;
-        setGameOver(false);
-    } else {
-        lastResult.textContent = 'Źle!';
-        lastResult.style.backgroundColor = 'red';
-        lowOrHi.textContent = userGuess < randomNumber ? 'Ostatni typ był za niski!' : 'Ostatni typ był za wysoki!';
-    }
-    guessCount++;
-    guessField.value = '';
-    guessField.focus();
-}
-
-function setGameOver(isWin) {
-    guessField.disabled = true;
-    guessSubmit.disabled = true;
-    newGameButton.style.display = 'block';
+// Funkcja do odczytu i wyświetlania danych z Firebase
+function listenForGuesses() {
+  const guessesList = document.getElementById('guesses-list');
+  
+  // Listener, który reaguje na każdy nowy wpis ('child_added') w kolekcji 'guesses'
+  guessesRef.on('child_added', snapshot => {
+    const newGuess = snapshot.val();
+    const guessNumber = newGuess.guessedNumber;
     
-    if (isWin) {
-        const score = guessCount - 1;
-        setTimeout(() => {
-            const currentUser = auth.currentUser;
-            const playerName = currentUser ? currentUser.email : "Gracz"; // Użyj e-maila jako nazwy gracza
-            updateLeaderboard(playerName, score);
-        }, 100);
+    // Tworzymy nowy element <li> i dodajemy go na początek listy
+    const listItem = document.createElement('li');
+    listItem.textContent = `Podano liczbę: ${guessNumber}`;
+    guessesList.prepend(listItem); // prepend() dodaje na górze listy
+  });
+}
+
+// Uruchomienie nasłuchiwania na dane przy starcie aplikacji
+listenForGuesses();
+
+document.querySelector('.check').addEventListener('click', function () {
+  const guess = Number(document.querySelector('.guess').value);
+  console.log(guess, typeof guess);
+
+  // Gdy nie ma liczby
+  if (!guess) {
+    displayMessage('⛔️ Nie wpisano liczby!');
+
+    // Gdy gracz wygra
+  } else if (guess === secretNumber) {
+    displayMessage('🎉 Poprawna liczba!');
+    document.querySelector('.number').textContent = secretNumber;
+    document.querySelector('body').style.backgroundColor = '#60b347';
+    document.querySelector('.number').style.width = '30rem';
+
+    if (score > highscore) {
+      highscore = score;
+      document.querySelector('.highscore').textContent = highscore;
     }
-}
 
-function updateLeaderboard(name, score) {
-    const leaderboardRef = ref(db, 'leaderboard');
-    push(leaderboardRef, {
-        playerName: name,
-        score: score
-    });
-}
+    // Gdy liczba jest inna niż sekretna
+  } else if (guess !== secretNumber) {
+    if (score > 1) {
+      displayMessage(guess > secretNumber ? '📈 Za wysoko!' : '📉 Za nisko!');
+      score--;
+      document.querySelector('.score').textContent = score;
+    } else {
+      displayMessage('💥 Przegrałeś grę!');
+      document.querySelector('.score').textContent = 0;
+    }
+  }
 
-function displayLeaderboard() {
-    const leaderboardRef = query(ref(db, 'leaderboard'), orderByChild('score'), limitToFirst(10));
-    
-    onValue(leaderboardRef, (snapshot) => {
-        leaderboardList.innerHTML = '';
-        if (snapshot.exists()) {
-            const scores = [];
-            snapshot.forEach((child) => scores.push(child.val()));
-            scores.forEach((entry) => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${entry.playerName}: ${entry.score} prób`;
-                leaderboardList.appendChild(listItem);
-            });
-        } else {
-            leaderboardList.innerHTML = '<li>Brak wyników</li>';
-        }
-    });
-}
-
-// Event Listeners dla gry
-guessSubmit.addEventListener('click', checkGuess);
-guessField.addEventListener('keyup', (event) => {
-    if (event.key === 'Enter') checkGuess();
+  // Zapisz próbę do Firebase, jeśli podano jakąś liczbę
+  if (guess) {
+    saveGuess(guess);
+  }
 });
-newGameButton.addEventListener('click', setupNewGame);
 
+document.querySelector('.again').addEventListener('click', function () {
+  score = 20;
+  secretNumber = Math.trunc(Math.random() * 20) + 1;
+
+  displayMessage('Zacznij zgadywać...');
+  document.querySelector('.score').textContent = score;
+  document.querySelector('.number').textContent = '?';
+  document.querySelector('.guess').value = '';
+
+  document.querySelector('body').style.backgroundColor = '#222';
+  document.querySelector('.number').style.width = '15rem';
+});
