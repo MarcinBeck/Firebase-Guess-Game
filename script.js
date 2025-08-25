@@ -13,7 +13,7 @@ const firebaseConfig = {
   messagingSenderId: "88077227103",
   appId: "1:88077227103:web:90dc97a026d18ea5bcb7ea",
   measurementId: "G-M71PNFJ215",
-  databaseURL: "https://console.firebase.google.com/u/0/project/guess-5d206/database/guess-5d206-default-rtdb/data/~2F" // Ten adres znajdziesz w konsoli Realtime Database
+  databaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app/" // Ten adres znajdziesz w konsoli Realtime Database
 };
 
 // Inicjalizacja Firebase
@@ -154,6 +154,7 @@ function displayLeaderboard() {
 // Start gry i wyświetlenie tabeli wyników
 setupNewGame();
 displayLeaderboard();
+
 
 
 
