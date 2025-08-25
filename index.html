@@ -1,56 +1,68 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <link rel="stylesheet" href="style.css" />
-    <title>Zgadnij numer!</title>
-  </head>
-  <body>
-    <header>
-      <h1>Zgadnij numer!</h1>
-      <p class="between">(Od 1 do 20)</p>
-      <button class="btn again">Jeszcze raz!</button>
-      <div class="number">?</div>
-    </header>
-    <main>
-      <section class="left">
-        <input type="number" class="guess" />
-        <button class="btn check">Sprawdź!</button>
-      </section>
-      <section class="right">
-        <p class="message">Zacznij zgadywać...</p>
-        <p class="label-score">💯 Wynik: <span class="score">20</span></p>
-        <p class="label-highscore">
-          🥇 Najlepszy wynik: <span class="highscore">0</span>
-        </p>
-      </section>
-      <section class="history">
-        <h2>Ostatnie próby:</h2>
-        <ul id="guesses-list"></ul>
-      </section>
-    </main>
-    
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Guess App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🤖 Guess App</h1>
 
-    <script>
-      // Poprawiona konfiguracja Firebase
-      var firebaseConfig = {
-        apiKey: "AIzaSyDQk4-s9e_tZ5c_r7oG8bX_yL9vF2jO3w",
-        authDomain: "guess-game-35a3b.firebaseapp.com",
-        // PONIŻEJ ZNAJDUJE SIĘ POPRAWIONY ADRES URL BAZY DANYCH
-        databaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "guess-game-35a3b",
-        storageBucket: "guess-game-35a3b.appspot.com",
-        messagingSenderId: "1083984624029",
-        appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
-      };
-      // Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-    </script>
-    
-    <script src="script.js"></script>
-  </body>
+  <!-- Sekcja logowania -->
+  <section id="auth-section">
+    <button id="login-btn">Zaloguj się</button>
+    <button id="logout-btn" style="display:none;">Wyloguj się</button>
+    <p id="user-info"></p>
+  </section>
+
+  <!-- Kamera -->
+  <section id="camera-section">
+    <video id="webcam" autoplay playsinline width="224" height="224"></video>
+    <canvas id="canvas" width="224" height="224" style="display:none;"></canvas>
+    <div>
+      <button id="capture-btn">📸 Zrób zdjęcie</button>
+    </div>
+  </section>
+
+  <!-- Zgadywanie -->
+  <section id="guess-section">
+    <h2>Zgadnij</h2>
+    <button id="guess-btn">🤔 Zgadnij co widzę</button>
+    <p id="prediction">Brak predykcji...</p>
+    <div id="feedback" style="display:none;">
+      <p>Czy model zgadł poprawnie?</p>
+      <button id="correct-btn">✅ Tak</button>
+      <button id="incorrect-btn">❌ Nie</button>
+      <input type="text" id="true-label" placeholder="Podaj poprawną etykietę"/>
+      <button id="save-true-label">Zapisz i ucz dalej</button>
+    </div>
+  </section>
+
+  <!-- Historia zdjęć (rozwijane) -->
+  <section id="dataset-section">
+    <details>
+      <summary>📂 Zebrane dane treningowe</summary>
+      <div id="dataset"></div>
+    </details>
+  </section>
+
+  <!-- Model w chmurze -->
+  <section id="cloud-section">
+    <h2>☁️ Zarządzanie modelem</h2>
+    <button id="save-cloud">Zapisz do chmury</button>
+    <button id="load-cloud">Wczytaj z chmury</button>
+    <button id="clear-cloud">Usuń z chmury</button>
+  </section>
+
+  <!-- Biblioteki -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <!-- Skrypt aplikacji -->
+  <script src="script.js"></script>
+</body>
 </html>
