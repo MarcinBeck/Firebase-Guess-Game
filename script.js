@@ -19,7 +19,8 @@ const firebaseConfig = {
   storageBucket: "guess-5d206.firebasestorage.app",
   messagingSenderId: "88077227103",
   appId: "1:88077227103:web:90dc97a026d18ea5bcb7ea",
-  measurementId: "G-M71PNFJ215"
+  measurementId: "G-M71PNFJ215",
+  detabaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app/"
 };
 
 // Inicjalizacja Firebase
@@ -205,4 +206,5 @@ guessField.addEventListener('keyup', (event) => {
     if (event.key === 'Enter') checkGuess();
 });
 newGameButton.addEventListener('click', setupNewGame);
+
 
