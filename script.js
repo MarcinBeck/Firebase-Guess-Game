@@ -1,4 +1,4 @@
-// Importy Firebase - tylko te, których potrzebujemy
+,// Importy Firebase - tylko te, których potrzebujemy
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getDatabase, ref, push, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
@@ -13,7 +13,7 @@ const firebaseConfig = {
   storageBucket: "guess-5d206.firebasestorage.app",
   messagingSenderId: "88077227103",
   appId: "1:88077227103:web:90dc97a026d18ea5bcb7ea",
-  measurementId: "G-M71PNFJ215"
+  measurementId: "G-M71PNFJ215",
   databaseURL: "https://console.firebase.google.com/u/0/project/guess-5d206/database/guess-5d206-default-rtdb/data/~2F" // Ten adres znajdziesz w konsoli Realtime Database
 };
 
@@ -155,4 +155,5 @@ function displayLeaderboard() {
 // Start gry i wyświetlenie tabeli wyników
 setupNewGame();
 displayLeaderboard();
+
 
