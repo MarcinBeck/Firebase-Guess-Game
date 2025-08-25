@@ -28,6 +28,14 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-around;
+  /* DODANO ANIMACJĘ PRZEJŚCIA */
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* DODANO KLASĘ DO UKRYWANIA SEKCJI GRY */
+main.hidden {
+  opacity: 0;
+  pointer-events: none; /* Zapobiega interakcji z ukrytymi elementami */
 }
 
 .left {
@@ -115,35 +123,54 @@ h1 {
   margin-bottom: 2rem;
 }
 
-/* PONIŻSZE STYLE ZOSTAŁY DODANE */
+/* ULEPSZONE STYLE SEKCJI LOGOWANIA */
 #auth-container {
   position: absolute;
   top: 2rem;
   right: 2rem;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   text-align: right;
 }
 
-#auth-container .user-uid {
+#auth-container .welcome-message {
   display: block;
-  margin-bottom: 5px;
-  font-size: 1.2rem;
-  color: #ccc;
+  margin-bottom: 8px;
 }
 
 #auth-container button {
   font-size: 1.4rem;
-  padding: 0.8rem 1.2rem;
+  padding: 1rem 1.5rem;
   cursor: pointer;
   border: 1px solid #eee;
   background: none;
   color: #eee;
+  transition: all 0.2s;
 }
 
 #auth-container button:hover {
   background: #eee;
   color: #222;
 }
+
+#auth-container button:disabled {
+  cursor: not-allowed;
+  background: #555;
+  color: #999;
+  border-color: #555;
+}
+
+/* ZMIENIONO WYGLĄD PRZYCISKU Wyloguj na bardziej subtelny */
+#auth-container button.logout-btn {
+  border: none;
+  background: none;
+  text-decoration: underline;
+  padding: 0;
+  color: #aaa;
+}
+#auth-container button.logout-btn:hover {
+  color: #fff;
+}
+
 
 .history {
   position: absolute;
