@@ -1,58 +1,55 @@
 <!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zgadnij Liczbę z Firebase</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <div id="auth-container">
-        <h2>Zaloguj się lub zarejestruj</h2>
-        <div id="auth-forms">
-            <input type="email" id="emailField" placeholder="E-mail">
-            <input type="password" id="passwordField" placeholder="Hasło">
-            <button id="registerButton">Zarejestruj</button>
-            <button id="loginButton">Zaloguj</button>
-        </div>
-        <div id="user-info" style="display: none;">
-            <p>Zalogowano jako: <span id="userEmail"></span></p>
-            <button id="logoutButton">Wyloguj</button>
-        </div>
-        <p id="authError" class="error-message"></p>
-    </div>
-
-    <div id="game-container" style="display: none;">
-        <div class="container">
-            <h1>Zgadnij liczbę od 1 do 100</h1>
-            <p>Masz 10 prób, aby odgadnąć liczbę wylosowaną przez komputer.</p>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Zgadnij numer!</title>
+  </head>
+  <body>
+    <header>
+      <h1>Zgadnij numer!</h1>
+      <p class="between">(Od 1 do 20)</p>
+      <button class="btn again">Jeszcze raz!</button>
+      <div class="number">?</div>
+    </header>
+    <main>
+      <section class="left">
+        <input type="number" class="guess" />
+        <button class="btn check">Sprawdź!</button>
+      </section>
+      <section class="right">
+        <p class="message">Zacznij zgadywać...</p>
+        <p class="label-score">💯 Wynik: <span class="score">20</span></p>
+        <p class="label-highscore">
+          🥇 Najlepszy wynik: <span class="highscore">0</span>
+        </p>
+      </section>
+      <section class="history">
+        <h2>Ostatnie próby:</h2>
+        <ul id="guesses-list"></ul>
+      </section>
+    </main>
     
-            <div class="form">
-                <label for="guessField">Podaj liczbę:</label>
-                <input type="text" id="guessField" class="guessField">
-                <input type="submit" value="Zgadnij" class="guessSubmit">
-            </div>
-    
-            <div class="resultParas">
-                <p class="guesses"></p>
-                <p class="lastResult"></p>
-                <p class="lowOrHi"></p>
-            </div>
-    
-            <button class="newGameButton" style="display: none;">Rozpocznij nową grę</button>
-        </div>
-    
-        <div class="leaderboard-container">
-            <h2>Tabela Wyników (TOP 10)</h2>
-            <ul id="leaderboard"></ul>
-        </div>
-    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
 
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    <script type="module" src="script.js"></script>
-
-</body>
+    <script>
+      // Your web app's Firebase configuration
+      var firebaseConfig = {
+        apiKey: "AIzaSyDQk4-s9e_tZ5c_r7oG8bX_yL9vF2jO3w",
+        authDomain: "guess-game-35a3b.firebaseapp.com",
+        databaseURL: "https://guess-game-35a3b-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "guess-game-35a3b",
+        storageBucket: "guess-game-35a3b.appspot.com",
+        messagingSenderId: "1083984624029",
+        appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
+      };
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+    </script>
+    
+    <script src="script.js"></script>
+  </body>
 </html>
