@@ -11,6 +11,7 @@ const canvas = document.getElementById('canvas');
 const gallery = document.getElementById('gallery');
 const status = document.getElementById('status');
 const predictionEl = document.getElementById('prediction');
+const clearBtn = document.getElementById('clearBtn'); // NOWY PRZYCISK
 
 // --- ZMIENNE GLOBALNE ---
 let currentUser = null;
@@ -26,7 +27,6 @@ const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
 async function loadModels() {
   status.textContent = "Inicjalizacja backendu AI...";
   try {
-    // KLUCZOWA POPRAWKA: Wymuszamy użycie backendu CPU, który jest wolniejszy, ale działa wszędzie.
     await tf.setBackend('cpu');
     console.log("Backend AI został ustawiony na CPU.");
   } catch (e) {
@@ -74,10 +74,7 @@ function stopCamera() {
 }
 
 async function takeSnapshot(label) {
-  if (!net || !classifier) {
-    console.error("Modele AI nie są gotowe.");
-    return;
-  }
+  if (!net || !classifier) return;
   const ctx = canvas.getContext('2d');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -95,10 +92,7 @@ async function takeSnapshot(label) {
 }
 
 async function predict() {
-  if (!net || !classifier) {
-    console.error("Modele AI nie są gotowe.");
-    return;
-  }
+  if (!net || !classifier) return;
   if (classifier.getNumClasses() === 0) {
     predictionEl.textContent = "Najpierw dodaj próbki!";
     return;
@@ -120,7 +114,11 @@ async function saveModel() {
   if (!currentUser || !classifier) return;
   
   const dataset = classifier.getClassifierDataset();
-  if (Object.keys(dataset).length === 0) return;
+  if (Object.keys(dataset).length === 0) {
+      // Jeśli model jest pusty, usuwamy go z bazy
+      await clearDataFromFirebase();
+      return;
+  };
 
   const serializedDataset = {};
   for (const key of Object.keys(dataset)) {
@@ -156,6 +154,36 @@ async function loadModelFromFirebase() {
   updateStatus();
 }
 
+// NOWA FUNKCJA DO CZYSZCZENIA DANYCH
+async function clearData() {
+    if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki? Ta operacja jest nieodwracalna.")) {
+        return;
+    }
+    
+    // 1. Wyczyść model w pamięci
+    if (classifier) {
+        classifier.clearAllClasses();
+    }
+    
+    // 2. Wyczyść galerię
+    gallery.innerHTML = "";
+    
+    // 3. Wyczyść dane w Firebase
+    await clearDataFromFirebase();
+    
+    // 4. Zaktualizuj status
+    updateStatus();
+    predictionEl.textContent = "Wyczyszczono dane. Możesz zacząć naukę od nowa.";
+    console.log("Wszystkie dane zostały usunięte.");
+}
+
+async function clearDataFromFirebase() {
+    if (!currentUser) return;
+    const modelPath = `models/${currentUser.uid}`;
+    await database.ref(modelPath).remove();
+}
+
+
 // --- ZARZĄDZANIE STANEM LOGOWANIA ---
 function handleLoggedOutState() {
   currentUser = null;
@@ -164,6 +192,7 @@ function handleLoggedOutState() {
   status.textContent = "Zaloguj się, aby rozpocząć.";
   predictionEl.textContent = "";
   gallery.innerHTML = "";
+  clearBtn.disabled = true; // Zablokuj przycisk czyszczenia
   if(classifier) classifier.clearAllClasses();
 
   document.getElementById('login-btn').addEventListener('click', () => {
@@ -176,6 +205,7 @@ async function handleLoggedInState(user) {
   authContainer.innerHTML = `<span class="welcome-message">Witaj, Gościu!</span><button id="logout-btn" class="logout-btn">Wyloguj</button>`;
   document.getElementById('logout-btn').addEventListener('click', () => firebase.auth().signOut());
   
+  clearBtn.disabled = false; // Odblokuj przycisk czyszczenia
   status.textContent = "Wczytywanie zapisanego modelu...";
   await loadModelFromFirebase();
 }
@@ -197,6 +227,7 @@ async function main() {
 // Event Listeners
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
+clearBtn.addEventListener('click', clearData); // NOWY EVENT LISTENER
 classButtons.forEach(btn => {
   btn.addEventListener('click', () => takeSnapshot(btn.dataset.class));
 });
