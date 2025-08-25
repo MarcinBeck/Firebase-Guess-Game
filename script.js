@@ -1,4 +1,3 @@
-// Importy Firebase - tylko te, których potrzebujemy
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getDatabase, ref, push, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
@@ -155,6 +154,7 @@ function displayLeaderboard() {
 // Start gry i wyświetlenie tabeli wyników
 setupNewGame();
 displayLeaderboard();
+
 
 
 
