@@ -12,6 +12,7 @@ const gallery = document.getElementById('gallery');
 const status = document.getElementById('status');
 const predictionEl = document.getElementById('prediction');
 const clearBtn = document.getElementById('clearBtn');
+const overlay = document.getElementById('overlay'); // Dodany element
 
 // --- ZMIENNE GLOBALNE ---
 let currentUser = null;
@@ -19,6 +20,7 @@ let currentStream = null;
 let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
+let faceDetectionInterval = null; // Dodana zmienna
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -39,8 +41,7 @@ async function loadModels() {
   try {
     net = await mobilenet.load();
     classifier = knnClassifier.create();
-    status.textContent = "Modele gotowe. Zaloguj się, aby zacząć.";
-    return true;
+    return true; // Zwracamy true, jeśli wszystko się udało
   } catch (e) {
     status.textContent = "Błąd krytyczny ładowania modeli AI.";
     console.error(e);
@@ -48,25 +49,75 @@ async function loadModels() {
   }
 }
 
+// NOWA FUNKCJA DO ŁADOWANIA MODELI FACE-API
+async function loadFaceApiModels() {
+  status.textContent = "Ładowanie modeli do analizy twarzy...";
+  try {
+    const MODEL_URL = './models'; // Ścieżka do folderu z modelami
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+    console.log("Modele face-api załadowane.");
+    return true;
+  } catch(e) {
+    console.error("Błąd ładowania modeli face-api:", e);
+    status.textContent = "Błąd ładowania modeli do analizy twarzy.";
+    return false;
+  }
+}
+
+// ZMODYFIKOWANA FUNKCJA
 function startCamera() {
   stopCamera();
   navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => {
       currentStream = stream;
       video.srcObject = stream;
-      video.play();
+      
+      video.addEventListener('play', () => {
+        // Dopasuj rozmiar canvas do wideo
+        const displaySize = { width: video.clientWidth, height: video.clientHeight };
+        faceapi.matchDimensions(overlay, displaySize);
+        
+        // Uruchom pętlę detekcji
+        faceDetectionInterval = setInterval(async () => {
+          if (!video.paused && !video.ended) {
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+            
+            // Wyczyść poprzednie rysunki
+            overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+
+            if (detections && detections.length > 0) {
+              const resizedDetections = faceapi.resizeResults(detections, displaySize);
+              // Narysuj ramki i emocje
+              faceapi.draw.drawDetections(overlay, resizedDetections);
+              faceapi.draw.drawFaceExpressions(overlay, resizedDetections);
+            }
+          }
+        }, 200); // Wykonuj detekcję co 200ms
+      });
+
       startBtn.disabled = true;
       stopBtn.disabled = false;
       classButtons.forEach(btn => btn.disabled = false);
       predictBtn.disabled = false;
-    }).catch(err => alert("Błąd kamery: " + err.message));
+    }).catch(err => alert("Błąd kamery: ".concat(err.message)));
 }
 
+// ZMODYFIKOWANA FUNKCJA
 function stopCamera() {
+  if (faceDetectionInterval) {
+    clearInterval(faceDetectionInterval);
+    faceDetectionInterval = null;
+  }
   if (currentStream) {
     currentStream.getTracks().forEach(track => track.stop());
     currentStream = null;
   }
+  if (overlay) {
+    overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+  }
+
   startBtn.disabled = false;
   stopBtn.disabled = true;
   classButtons.forEach(btn => btn.disabled = true);
@@ -133,8 +184,8 @@ async function saveModel() {
 
 async function loadModelFromFirebase() {
   if (!currentUser || !classifier) return;
-  classifier.clearAllClasses(); // Wyczyść stary model przed załadowaniem nowego
-  gallery.innerHTML = ""; // Wyczyść galerię przed załadowaniem nowego modelu
+  classifier.clearAllClasses();
+  gallery.innerHTML = "";
 
   const modelPath = `models/${currentUser.uid}`;
   const snapshot = await database.ref(modelPath).once('value');
@@ -157,38 +208,28 @@ async function loadModelFromFirebase() {
   updateStatus();
 }
 
-// POPRAWIONA I BARDZIEJ ROZBUDOWANA FUNKCJA CZYSZCZENIA DANYCH
 async function clearData() {
     if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki z bazy danych?")) {
         return;
     }
     
     try {
-      // 1. Wyczyść dane w Firebase
       if (currentUser) {
         const modelPath = `models/${currentUser.uid}`;
         await database.ref(modelPath).remove();
         console.log("Dane z Firebase zostały usunięte.");
       }
-      
-      // 2. Wyczyść model w pamięci (lokalnie)
       if (classifier) {
           classifier.clearAllClasses();
       }
-      
-      // 3. Wyczyść galerię i komunikaty
       gallery.innerHTML = "";
       predictionEl.textContent = "Wyczyszczono dane. Zacznij naukę od nowa.";
-      
-      // 4. Zaktualizuj status
       updateStatus();
-
     } catch (error) {
       console.error("Błąd podczas czyszczenia danych:", error);
       alert("Wystąpił błąd podczas czyszczenia danych.");
     }
 }
-
 
 // --- ZARZĄDZANIE STANEM LOGOWANIA ---
 function handleLoggedOutState() {
@@ -216,10 +257,13 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-// --- INICJALIZACJA APLIKACJI ---
+// ZMODYFIKOWANA FUNKCJA
 async function main() {
   const modelsLoaded = await loadModels();
-  if (modelsLoaded) {
+  const faceApiModelsLoaded = await loadFaceApiModels();
+
+  if (modelsLoaded && faceApiModelsLoaded) {
+    status.textContent = "Modele gotowe. Zaloguj się, aby rozpocząć.";
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
         handleLoggedInState(user);
@@ -227,6 +271,8 @@ async function main() {
         handleLoggedOutState();
       }
     });
+  } else {
+      status.textContent = "Błąd krytyczny. Nie udało się załadować wszystkich modeli AI.";
   }
 }
 
