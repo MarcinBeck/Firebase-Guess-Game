@@ -13,13 +13,13 @@ import { getDatabase, ref, push, onValue, query, orderByChild, limitToFirst } fr
 // ❗ WAŻNE: Wklej tutaj swoją konfigurację Firebase.
 //
 const firebaseConfig = {
-    apiKey: "TWOJ_API_KEY",
-    authDomain: "TWOJ_AUTH_DOMAIN",
-    projectId: "TWOJ_PROJECT_ID",
-    storageBucket: "TWOJ_STORAGE_BUCKET",
-    messagingSenderId: "TWOJ_MESSAGING_SENDER_ID",
-    appId: "TWOJA_APP_ID",
-    databaseURL: "https://TWOJ-PROJEKT-DEFAULT-RTDB.REGION.firebasedatabase.app"
+  apiKey: "AIzaSyDgnmnrBiqwFuFcEDpKsG_7hP2c8C4t30E",
+  authDomain: "guess-5d206.firebaseapp.com",
+  projectId: "guess-5d206",
+  storageBucket: "guess-5d206.firebasestorage.app",
+  messagingSenderId: "88077227103",
+  appId: "1:88077227103:web:90dc97a026d18ea5bcb7ea",
+  measurementId: "G-M71PNFJ215"
 };
 
 // Inicjalizacja Firebase
@@ -205,3 +205,4 @@ guessField.addEventListener('keyup', (event) => {
     if (event.key === 'Enter') checkGuess();
 });
 newGameButton.addEventListener('click', setupNewGame);
+
