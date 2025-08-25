@@ -26,11 +26,13 @@ const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
 async function loadModels() {
   status.textContent = "Inicjalizacja backendu AI...";
   try {
-    // POPRAWKA: Jawne ustawienie backendu WebGL. Jeśli się nie uda, TF.js spróbuje użyć CPU.
-    await tf.setBackend('webgl');
-    console.log("Backend AI ustawiony na WebGL.");
+    // ROZWIĄZANIE: Wymuszamy użycie backendu CPU, który jest wolniejszy, ale działa wszędzie.
+    await tf.setBackend('cpu');
+    console.log("Backend AI został ustawiony na CPU.");
   } catch (e) {
-    console.warn("Nie udało się zainicjować backendu WebGL, próba użycia CPU. Wydajność może być niższa.");
+    console.error("Nie udało się ustawić backendu AI.", e);
+    status.textContent = "Błąd krytyczny inicjalizacji AI.";
+    return false;
   }
 
   status.textContent = "Ładowanie modelu MobileNet...";
@@ -38,11 +40,11 @@ async function loadModels() {
     net = await mobilenet.load();
     classifier = knnClassifier.create();
     status.textContent = "Modele gotowe. Zaloguj się, aby zacząć.";
-    return true; // Zwracamy true, jeśli wszystko się udało
+    return true;
   } catch (e) {
     status.textContent = "Błąd krytyczny ładowania modeli AI.";
     console.error(e);
-    return false; // Zwracamy false w razie błędu
+    return false;
   }
 }
 
@@ -72,6 +74,10 @@ function stopCamera() {
 }
 
 async function takeSnapshot(label) {
+  if (!net || !classifier) {
+    console.error("Modele AI nie są gotowe.");
+    return;
+  }
   const ctx = canvas.getContext('2d');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -89,6 +95,10 @@ async function takeSnapshot(label) {
 }
 
 async function predict() {
+  if (!net || !classifier) {
+    console.error("Modele AI nie są gotowe.");
+    return;
+  }
   if (classifier.getNumClasses() === 0) {
     predictionEl.textContent = "Najpierw dodaj próbki!";
     return;
@@ -99,7 +109,6 @@ async function predict() {
 }
 
 function updateStatus() {
-  // POPRAWKA: Sprawdzamy, czy classifier istnieje, zanim go użyjemy
   if (classifier) {
     const counts = classifier.getClassExampleCount();
     status.textContent = classNames.map(name => `${name}: ${counts[name] || 0}`).join(' | ');
@@ -111,7 +120,6 @@ async function saveModel() {
   if (!currentUser || !classifier) return;
   
   const dataset = classifier.getClassifierDataset();
-  // Zabezpieczenie przed zapisem pustego modelu
   if (Object.keys(dataset).length === 0) return;
 
   const serializedDataset = {};
@@ -138,8 +146,11 @@ async function loadModelFromFirebase() {
         const shape = [data.length / 1024, 1024];
         dataset[key] = tf.tensor2d(data, shape);
     }
-    classifier.setClassifierDataset(dataset);
-    console.log("Model został wczytany z Firebase.");
+    // ZABEZPIECZENIE: Upewniamy się, że classifier istnieje przed użyciem
+    if(classifier) {
+        classifier.setClassifierDataset(dataset);
+        console.log("Model został wczytany z Firebase.");
+    }
   } else {
     console.log("Nie znaleziono zapisanego modelu dla tego użytkownika.");
   }
@@ -173,7 +184,6 @@ async function handleLoggedInState(user) {
 // --- INICJALIZACJA APLIKACJI ---
 async function main() {
   const modelsLoaded = await loadModels();
-  // POPRAWKA: Logika logowania uruchamia się DOPIERO po załadowaniu modeli
   if (modelsLoaded) {
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
