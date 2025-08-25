@@ -10,6 +10,7 @@
   <body>
     <header>
       <h1>Zgadnij numer!</h1>
+      <div id="auth-container"></div>
       <p class="between">(Od 1 do 20)</p>
       <button class="btn again">Jeszcze raz!</button>
       <div class="number">?</div>
@@ -46,7 +47,6 @@
         messagingSenderId: "1083984624029",
         appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
       };
-      // Initialize Firebase
       firebase.initializeApp(firebaseConfig);
       const database = firebase.database(); 
     </script>
