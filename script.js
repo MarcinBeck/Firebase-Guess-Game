@@ -1,12 +1,11 @@
-// Importy Firebase z nową funkcją 'updateProfile'
+// Importy Firebase z nowymi funkcjami
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { 
     getAuth, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     signOut, 
-    onAuthStateChanged,
-    updateProfile // Nowa funkcja
+    onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getDatabase, ref, push, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
@@ -41,50 +40,54 @@ const loginButton = document.getElementById('loginButton');
 const logoutButton = document.getElementById('logoutButton');
 const userEmailSpan = document.getElementById('userEmail');
 const authError = document.getElementById('authError');
-const nameField = document.getElementById('nameField'); // Nowe pole
-const saveNameButton = document.getElementById('saveNameButton'); // Nowy przycisk
 
-// Rejestracja
+// Rejestracja nowego użytkownika
 registerButton.addEventListener('click', () => {
-    createUserWithEmailAndPassword(auth, emailField.value, passwordField.value)
-        .catch(error => authError.textContent = "Błąd rejestracji: " + error.message);
+    const email = emailField.value;
+    const password = passwordField.value;
+    createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+            console.log("Zarejestrowano pomyślnie:", userCredential.user.email);
+            authError.textContent = '';
+        })
+        .catch((error) => {
+            console.error("Błąd rejestracji:", error.message);
+            authError.textContent = "Błąd rejestracji: " + error.message;
+        });
 });
 
-// Logowanie
+// Logowanie istniejącego użytkownika
 loginButton.addEventListener('click', () => {
-    signInWithEmailAndPassword(auth, emailField.value, passwordField.value)
-        .catch(error => authError.textContent = "Błąd logowania: " + error.message);
+    const email = emailField.value;
+    const password = passwordField.value;
+    signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+            console.log("Zalogowano pomyślnie:", userCredential.user.email);
+            authError.textContent = '';
+        })
+        .catch((error) => {
+            console.error("Błąd logowania:", error.message);
+            authError.textContent = "Błąd logowania: " + error.message;
+        });
 });
 
 // Wylogowanie
-logoutButton.addEventListener('click', () => signOut(auth));
-
-// Zapisywanie nazwy gracza
-saveNameButton.addEventListener('click', () => {
-    const newName = nameField.value;
-    if (auth.currentUser && newName.trim() !== '') {
-        updateProfile(auth.currentUser, {
-            displayName: newName.trim()
-        }).then(() => {
-            alert("Nazwa gracza została zaktualizowana!");
-        }).catch(error => {
-            console.error("Błąd aktualizacji nazwy: ", error);
-        });
-    }
+logoutButton.addEventListener('click', () => {
+    signOut(auth).then(() => {
+        console.log("Wylogowano pomyślnie.");
+    });
 });
 
 // Główny obserwator stanu autentykacji
 onAuthStateChanged(auth, (user) => {
-    authError.textContent = '';
     if (user) {
         // Użytkownik jest zalogowany
         userEmailSpan.textContent = user.email;
-        nameField.value = user.displayName || ''; // Ustawia nazwę gracza, jeśli istnieje
-        
         authForms.style.display = 'none';
         userInfo.style.display = 'block';
         gameContainer.style.display = 'block';
 
+        // Uruchomienie gry
         setupNewGame();
         displayLeaderboard();
     } else {
@@ -95,9 +98,10 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- SEKCJA GRY ---
-// (Reszta kodu gry pozostaje bez zmian, ale z jedną modyfikacją w setGameOver)
 
+// --- SEKCJA GRY ---
+
+// Elementy DOM gry
 const guesses = document.querySelector('.guesses');
 const lastResult = document.querySelector('.lastResult');
 const lowOrHi = document.querySelector('.lowOrHi');
@@ -106,6 +110,7 @@ const guessField = document.querySelector('.guessField');
 const newGameButton = document.querySelector('.newGameButton');
 const leaderboardList = document.getElementById('leaderboard');
 
+// Zmienne gry
 let randomNumber;
 let guessCount;
 
@@ -161,8 +166,7 @@ function setGameOver(isWin) {
         const score = guessCount - 1;
         setTimeout(() => {
             const currentUser = auth.currentUser;
-            // ✅ Użyj displayName jeśli istnieje, w przeciwnym razie użyj e-maila
-            const playerName = currentUser.displayName || currentUser.email; 
+            const playerName = currentUser ? currentUser.email : "Gracz"; // Użyj e-maila jako nazwy gracza
             updateLeaderboard(playerName, score);
         }, 100);
     }
@@ -178,6 +182,7 @@ function updateLeaderboard(name, score) {
 
 function displayLeaderboard() {
     const leaderboardRef = query(ref(db, 'leaderboard'), orderByChild('score'), limitToFirst(10));
+    
     onValue(leaderboardRef, (snapshot) => {
         leaderboardList.innerHTML = '';
         if (snapshot.exists()) {
@@ -194,6 +199,7 @@ function displayLeaderboard() {
     });
 }
 
+// Event Listeners dla gry
 guessSubmit.addEventListener('click', checkGuess);
 guessField.addEventListener('keyup', (event) => {
     if (event.key === 'Enter') checkGuess();
