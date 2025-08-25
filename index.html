@@ -1,48 +1,46 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    tools:context=".MainActivity">
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gra z Firebase</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-    <EditText
-        android:id="@+id/value_input"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Wpisz wartość do zapisania"
-        android:inputType="text"
-        android:layout_marginBottom="16dp"/>
+    <h1>Aplikacja z Bazą Danych</h1>
+    <p>Wpisz wartość, którą chcesz zapisać w Firebase Realtime Database.</p>
 
-    <Button
-        android:id="@+id/save_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="Zapisz w bazie"/>
+    <input type="text" id="valueInput" placeholder="Wpisz tekst tutaj...">
+    <button id="saveButton">Zapisz w Bazie</button>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Dotychczasowe wartości z bazy:"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginTop="24dp"/>
+    <hr>
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="8dp">
+    <h2>Dane zapisane w bazie:</h2>
+    <ul id="dataContainer">
+        </ul>
 
-        <TextView
-            android:id="@+id/database_content_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            tools:text="Tutaj pojawią się dane..."/>
 
-    </ScrollView>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-</LinearLayout>
+    <script>
+        // WKLEJ TUTAJ SWOJĄ KONFIGURACJĘ SKOPIOWANĄ Z KONSOLI FIREBASE
+        const firebaseConfig = {
+            apiKey: "...",
+            authDomain: "...",
+            databaseURL: "...", // Ten adres jest kluczowy!
+            projectId: "...",
+            storageBucket: "...",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+
+        // Inicjalizacja Firebase
+        firebase.initializeApp(firebaseConfig);
+    </script>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
