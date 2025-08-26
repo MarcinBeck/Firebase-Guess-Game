@@ -12,7 +12,7 @@ const gallery = document.getElementById('gallery');
 const status = document.getElementById('status');
 const predictionEl = document.getElementById('prediction');
 const clearBtn = document.getElementById('clearBtn');
-const overlay = document.getElementById('overlay'); // Dodany element
+const overlay = document.getElementById('overlay');
 
 // --- ZMIENNE GLOBALNE ---
 let currentUser = null;
@@ -20,7 +20,7 @@ let currentStream = null;
 let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
-let faceDetectionInterval = null; // Dodana zmienna
+let faceDetectionInterval = null;
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -41,7 +41,7 @@ async function loadModels() {
   try {
     net = await mobilenet.load();
     classifier = knnClassifier.create();
-    return true; // Zwracamy true, jeśli wszystko się udało
+    return true;
   } catch (e) {
     status.textContent = "Błąd krytyczny ładowania modeli AI.";
     console.error(e);
@@ -49,11 +49,10 @@ async function loadModels() {
   }
 }
 
-// NOWA FUNKCJA DO ŁADOWANIA MODELI FACE-API
 async function loadFaceApiModels() {
   status.textContent = "Ładowanie modeli do analizy twarzy...";
   try {
-    const MODEL_URL = './models'; // Ścieżka do folderu z modelami
+    const MODEL_URL = './models';
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
     await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
     await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
@@ -66,7 +65,6 @@ async function loadFaceApiModels() {
   }
 }
 
-// ZMODYFIKOWANA FUNKCJA
 function startCamera() {
   stopCamera();
   navigator.mediaDevices.getUserMedia({ video: true })
@@ -74,27 +72,26 @@ function startCamera() {
       currentStream = stream;
       video.srcObject = stream;
       
+      // POPRAWKA: DODANO WYWOŁANIE video.play()
+      video.play();
+
       video.addEventListener('play', () => {
-        // Dopasuj rozmiar canvas do wideo
         const displaySize = { width: video.clientWidth, height: video.clientHeight };
         faceapi.matchDimensions(overlay, displaySize);
         
-        // Uruchom pętlę detekcji
         faceDetectionInterval = setInterval(async () => {
           if (!video.paused && !video.ended) {
             const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
             
-            // Wyczyść poprzednie rysunki
             overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
 
             if (detections && detections.length > 0) {
               const resizedDetections = faceapi.resizeResults(detections, displaySize);
-              // Narysuj ramki i emocje
               faceapi.draw.drawDetections(overlay, resizedDetections);
               faceapi.draw.drawFaceExpressions(overlay, resizedDetections);
             }
           }
-        }, 200); // Wykonuj detekcję co 200ms
+        }, 200);
       });
 
       startBtn.disabled = true;
@@ -104,7 +101,6 @@ function startCamera() {
     }).catch(err => alert("Błąd kamery: ".concat(err.message)));
 }
 
-// ZMODYFIKOWANA FUNKCJA
 function stopCamera() {
   if (faceDetectionInterval) {
     clearInterval(faceDetectionInterval);
@@ -257,7 +253,7 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-// ZMODYFIKOWANA FUNKCJA
+// --- INICJALIZACJA APLIKACJI ---
 async function main() {
   const modelsLoaded = await loadModels();
   const faceApiModelsLoaded = await loadFaceApiModels();
