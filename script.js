@@ -71,8 +71,7 @@ function startCamera() {
     .then(stream => {
       currentStream = stream;
       video.srcObject = stream;
-      
-      // POPRAWKA: DODANO WYWOŁANIE video.play()
+      // KLUCZOWA POPRAWKA - UPEWNIAMY SIĘ, ŻE WIDEO JEST URUCHOMIONE
       video.play();
 
       video.addEventListener('play', () => {
@@ -283,4 +282,3 @@ predictBtn.addEventListener('click', predict);
 
 // Start!
 main();
-
