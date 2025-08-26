@@ -22,8 +22,8 @@ let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 let faceDetector;
-// ZMIANA: Zamiast ID interwału, będziemy używać flagi do kontrolowania pętli
-let isDetectingFaces = false;
+// ZMIANA: Zamiast flagi, będziemy przechowywać ID timeoutu, aby go kontrolować
+let faceDetectionTimeoutId = null;
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -57,10 +57,9 @@ async function loadFaceDetectorModel() {
   }
 }
 
-// ZMIANA: Nowa, bardziej wydajna struktura pętli detekcji
+// ZMIANA: Nowa, stabilna struktura pętli detekcji z setTimeout
 async function detectFacesLoop() {
-  // Pętla działa tak długo, jak flaga isDetectingFaces jest prawdziwa
-  if (isDetectingFaces && faceDetector && !video.paused && !video.ended) {
+  if (faceDetector && !video.paused && !video.ended) {
     const faces = await faceDetector.estimateFaces(video, { flipHorizontal: false });
     
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
@@ -78,8 +77,8 @@ async function detectFacesLoop() {
       });
     });
 
-    // Wywołaj następną klatkę detekcji. Daje to przeglądarce czas na inne zadania.
-    requestAnimationFrame(detectFacesLoop);
+    // Po zakończeniu detekcji, zaplanuj kolejną za 400ms
+    faceDetectionTimeoutId = setTimeout(detectFacesLoop, 400);
   }
 }
 
@@ -96,9 +95,7 @@ function startCamera() {
         overlay.width = video.videoWidth;
         overlay.height = video.videoHeight;
         
-        // ZMIANA: Ustawiamy flagę i jednorazowo odpalamy pętlę.
-        // Pętla będzie się sama podtrzymywać dzięki requestAnimationFrame.
-        isDetectingFaces = true;
+        // ZMIANA: Jednorazowo odpalamy pętlę. Sama się podtrzyma dzięki setTimeout.
         detectFacesLoop();
       });
 
@@ -110,8 +107,11 @@ function startCamera() {
 }
 
 function stopCamera() {
-  // ZMIANA: Teraz wystarczy ustawić flagę na false, aby zatrzymać pętlę.
-  isDetectingFaces = false;
+  // ZMIANA: Używamy clearTimeout do zatrzymania pętli.
+  if (faceDetectionTimeoutId) {
+    clearTimeout(faceDetectionTimeoutId);
+    faceDetectionTimeoutId = null;
+  }
   if (currentStream) {
     currentStream.getTracks().forEach(track => track.stop());
     currentStream = null;
