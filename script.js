@@ -28,7 +28,6 @@ let isDetectingFaces = false;
 
 const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
 
-// Ładowanie modeli do KLASYFIKACJI SYMBOLI
 async function loadClassificationModels() {
   status.textContent = "Ładowanie modelu MobileNet...";
   try {
@@ -42,7 +41,6 @@ async function loadClassificationModels() {
   }
 }
 
-// Ładowanie modelu do DETEKCJI TWARZY
 async function loadFaceDetectorModel() {
   status.textContent = "Ładowanie modelu detekcji twarzy...";
   try {
@@ -58,15 +56,18 @@ async function loadFaceDetectorModel() {
   }
 }
 
-// Pętla detekcji twarzy
 async function detectFacesLoop() {
   if (!isDetectingFaces || !faceDetector) return;
 
   const faces = await faceDetector.estimateFaces(video, { flipHorizontal: false });
+  // LOG DIAGNOSTYCZNY: Sprawdzamy, czy model cokolwiek wykrywa
+  console.log(`Wykryto twarzy: ${faces.length}`);
   
   overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
   
   faces.forEach(face => {
+    // LOG DIAGNOSTYCZNY: Sprawdzamy, czy pętla rysowania jest wykonywana
+    console.log("Rysuję ramkę dla wykrytej twarzy.");
     overlayCtx.strokeStyle = '#38bdf8';
     overlayCtx.lineWidth = 4;
     overlayCtx.strokeRect(face.box.xMin, face.box.yMin, face.box.width, face.box.height);
@@ -91,9 +92,13 @@ function startCamera() {
       video.play();
 
       video.addEventListener('loadeddata', () => {
+        // LOG DIAGNOSTYCZNY: Sprawdzamy, czy wideo jest gotowe i jakie ma wymiary
+        console.log('EVENT "loadeddata": Wideo gotowe. Wymiary:', video.videoWidth, 'x', video.videoHeight);
         overlay.width = video.videoWidth;
         overlay.height = video.videoHeight;
+        
         isDetectingFaces = true;
+        console.log('URUCHAMIAM PĘTLĘ DETEKCJI TWARZY...');
         detectFacesLoop();
       });
 
@@ -244,9 +249,8 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-// ZMODYFIKOWANA INICJALIZACJA APLIKACJI
+// INICJALIZACJA APLIKACJI
 async function main() {
-  // Usunięto setBackend('cpu'), pozwalamy TF.js wybrać najlepszy dostępny
   const classificationModelsLoaded = await loadClassificationModels();
   const faceDetectorModelLoaded = await loadFaceDetectorModel();
 
