@@ -22,7 +22,8 @@ let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 let faceDetector;
-let isDetectingFaces = false;
+// ZMIANA: Zamiast flagi, będziemy przechowywać ID interwału
+let faceDetectionInterval = null; 
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -56,18 +57,15 @@ async function loadFaceDetectorModel() {
   }
 }
 
-async function detectFacesLoop() {
-  if (!isDetectingFaces || !faceDetector) return;
+// ZMIANA: Pętla detekcji jest teraz prostszą funkcją, która nie wywołuje sama siebie
+async function detectFaces() {
+  if (!faceDetector || video.paused || video.ended) return;
 
   const faces = await faceDetector.estimateFaces(video, { flipHorizontal: false });
-  // LOG DIAGNOSTYCZNY: Sprawdzamy, czy model cokolwiek wykrywa
-  console.log(`Wykryto twarzy: ${faces.length}`);
   
   overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
   
   faces.forEach(face => {
-    // LOG DIAGNOSTYCZNY: Sprawdzamy, czy pętla rysowania jest wykonywana
-    console.log("Rysuję ramkę dla wykrytej twarzy.");
     overlayCtx.strokeStyle = '#38bdf8';
     overlayCtx.lineWidth = 4;
     overlayCtx.strokeRect(face.box.xMin, face.box.yMin, face.box.width, face.box.height);
@@ -79,8 +77,6 @@ async function detectFacesLoop() {
       overlayCtx.fill();
     });
   });
-
-  requestAnimationFrame(detectFacesLoop);
 }
 
 function startCamera() {
@@ -92,14 +88,11 @@ function startCamera() {
       video.play();
 
       video.addEventListener('loadeddata', () => {
-        // LOG DIAGNOSTYCZNY: Sprawdzamy, czy wideo jest gotowe i jakie ma wymiary
-        console.log('EVENT "loadeddata": Wideo gotowe. Wymiary:', video.videoWidth, 'x', video.videoHeight);
         overlay.width = video.videoWidth;
         overlay.height = video.videoHeight;
         
-        isDetectingFaces = true;
-        console.log('URUCHAMIAM PĘTLĘ DETEKCJI TWARZY...');
-        detectFacesLoop();
+        // ZMIANA: Używamy setInterval zamiast requestAnimationFrame
+        faceDetectionInterval = setInterval(detectFaces, 400); // Wykonuj detekcję co 400ms
       });
 
       startBtn.disabled = true;
@@ -110,7 +103,11 @@ function startCamera() {
 }
 
 function stopCamera() {
-  isDetectingFaces = false;
+  // ZMIANA: Używamy clearInterval do zatrzymania pętli
+  if (faceDetectionInterval) {
+    clearInterval(faceDetectionInterval);
+    faceDetectionInterval = null;
+  }
   if (currentStream) {
     currentStream.getTracks().forEach(track => track.stop());
     currentStream = null;
@@ -123,6 +120,7 @@ function stopCamera() {
   predictBtn.disabled = true;
 }
 
+// Reszta kodu pozostaje bez zmian
 async function takeSnapshot(label) {
   if (!net || !classifier) return;
   const ctx = canvas.getContext('2d');
@@ -159,10 +157,8 @@ function updateStatus() {
   }
 }
 
-// Logika Firebase (bez zmian)
 async function saveModel() {
   if (!currentUser || !classifier) return;
-  
   const dataset = classifier.getClassifierDataset();
   const modelPath = `models/${currentUser.uid}`;
 
@@ -175,7 +171,6 @@ async function saveModel() {
   for (const key of Object.keys(dataset)) {
     serializedDataset[key] = tensorToJSON(dataset[key]);
   }
-  
   await database.ref(modelPath).set(serializedDataset);
 }
 
@@ -223,7 +218,6 @@ async function clearData() {
     }
 }
 
-// Logika logowania (bez zmian)
 function handleLoggedOutState() {
   currentUser = null;
   stopCamera();
@@ -249,7 +243,6 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-// INICJALIZACJA APLIKACJI
 async function main() {
   const classificationModelsLoaded = await loadClassificationModels();
   const faceDetectorModelLoaded = await loadFaceDetectorModel();
