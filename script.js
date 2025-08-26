@@ -13,6 +13,7 @@ const status = document.getElementById('status');
 const predictionEl = document.getElementById('prediction');
 const clearBtn = document.getElementById('clearBtn');
 const overlay = document.getElementById('overlay');
+const overlayCtx = overlay.getContext('2d');
 
 // --- ZMIENNE GLOBALNE ---
 let currentUser = null;
@@ -20,49 +21,69 @@ let currentStream = null;
 let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
-let faceDetectionInterval = null;
+let faceDetector; // Zmienna dla nowego modelu detekcji twarzy
+let isDetectingFaces = false;
 
 // --- FUNKCJE AI i KAMERY ---
 
 const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
 
-async function loadModels() {
-  status.textContent = "Inicjalizacja backendu AI...";
-  try {
-    await tf.setBackend('cpu');
-    console.log("Backend AI został ustawiony na CPU.");
-  } catch (e) {
-    console.error("Nie udało się ustawić backendu AI.", e);
-    status.textContent = "Błąd krytyczny inicjalizacji AI.";
-    return false;
-  }
-
+// Ładowanie modeli do KLASYFIKACJI SYMBOLI
+async function loadClassificationModels() {
   status.textContent = "Ładowanie modelu MobileNet...";
   try {
     net = await mobilenet.load();
     classifier = knnClassifier.create();
     return true;
   } catch (e) {
-    status.textContent = "Błąd krytyczny ładowania modeli AI.";
+    status.textContent = "Błąd krytyczny ładowania modeli klasyfikacji.";
     console.error(e);
     return false;
   }
 }
 
-async function loadFaceApiModels() {
-  status.textContent = "Ładowanie modeli do analizy twarzy...";
+// NOWA FUNKCJA: Ładowanie modelu do DETEKCJI TWARZY
+async function loadFaceDetectorModel() {
+  status.textContent = "Ładowanie modelu detekcji twarzy...";
   try {
-    const MODEL_URL = './models';
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
-    console.log("Modele face-api załadowane.");
+    const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
+    const detectorConfig = { runtime: 'tfjs' };
+    faceDetector = await faceDetection.createDetector(model, detectorConfig);
+    console.log("Model detekcji twarzy załadowany.");
     return true;
-  } catch(e) {
-    console.error("Błąd ładowania modeli face-api:", e);
-    status.textContent = "Błąd ładowania modeli do analizy twarzy.";
+  } catch (e) {
+    console.error("Błąd ładowania modelu detekcji twarzy:", e);
+    status.textContent = "Błąd ładowania modelu detekcji twarzy.";
     return false;
   }
+}
+
+// NOWA FUNKCJA: Pętla detekcji twarzy
+async function detectFacesLoop() {
+  if (!isDetectingFaces || !faceDetector) return;
+
+  const faces = await faceDetector.estimateFaces(video, { flipHorizontal: false });
+  
+  overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+  
+  // Rysowanie wyników
+  faces.forEach(face => {
+    // Rysowanie ramki wokół twarzy
+    overlayCtx.strokeStyle = '#38bdf8';
+    overlayCtx.lineWidth = 4;
+    overlayCtx.strokeRect(face.box.xMin, face.box.yMin, face.box.width, face.box.height);
+
+    // Rysowanie punktów kluczowych (oczy, nos, usta)
+    overlayCtx.fillStyle = '#38bdf8';
+    face.keypoints.forEach(keypoint => {
+      overlayCtx.beginPath();
+      overlayCtx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+      overlayCtx.fill();
+    });
+  });
+
+  // Uruchom pętlę ponownie w następnej klatce animacji
+  requestAnimationFrame(detectFacesLoop);
 }
 
 function startCamera() {
@@ -71,26 +92,14 @@ function startCamera() {
     .then(stream => {
       currentStream = stream;
       video.srcObject = stream;
-      // KLUCZOWA POPRAWKA - UPEWNIAMY SIĘ, ŻE WIDEO JEST URUCHOMIONE
       video.play();
 
-      video.addEventListener('play', () => {
-        const displaySize = { width: video.clientWidth, height: video.clientHeight };
-        faceapi.matchDimensions(overlay, displaySize);
-        
-        faceDetectionInterval = setInterval(async () => {
-          if (!video.paused && !video.ended) {
-            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
-            
-            overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
-
-            if (detections && detections.length > 0) {
-              const resizedDetections = faceapi.resizeResults(detections, displaySize);
-              faceapi.draw.drawDetections(overlay, resizedDetections);
-              faceapi.draw.drawFaceExpressions(overlay, resizedDetections);
-            }
-          }
-        }, 200);
+      video.addEventListener('loadeddata', () => {
+        // Dopasuj rozmiar canvas do wideo po załadowaniu metadanych
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+        isDetectingFaces = true;
+        detectFacesLoop(); // Uruchom pętlę detekcji
       });
 
       startBtn.disabled = true;
@@ -101,17 +110,12 @@ function startCamera() {
 }
 
 function stopCamera() {
-  if (faceDetectionInterval) {
-    clearInterval(faceDetectionInterval);
-    faceDetectionInterval = null;
-  }
+  isDetectingFaces = false;
   if (currentStream) {
     currentStream.getTracks().forEach(track => track.stop());
     currentStream = null;
   }
-  if (overlay) {
-    overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
-  }
+  overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
 
   startBtn.disabled = false;
   stopBtn.disabled = true;
@@ -119,6 +123,7 @@ function stopCamera() {
   predictBtn.disabled = true;
 }
 
+// Funkcje takeSnapshot i predict pozostają bez większych zmian
 async function takeSnapshot(label) {
   if (!net || !classifier) return;
   const ctx = canvas.getContext('2d');
@@ -155,7 +160,7 @@ function updateStatus() {
   }
 }
 
-// --- LOGIKA FIREBASE ---
+// Logika Firebase pozostaje bez zmian
 async function saveModel() {
   if (!currentUser || !classifier) return;
   
@@ -226,7 +231,7 @@ async function clearData() {
     }
 }
 
-// --- ZARZĄDZANIE STANEM LOGOWANIA ---
+// Logika logowania pozostaje bez zmian
 function handleLoggedOutState() {
   currentUser = null;
   stopCamera();
@@ -252,12 +257,13 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-// --- INICJALIZACJA APLIKACJI ---
+// ZMODYFIKOWANA INICJALIZACJA APLIKACJI
 async function main() {
-  const modelsLoaded = await loadModels();
-  const faceApiModelsLoaded = await loadFaceApiModels();
+  await tf.setBackend('cpu');
+  const classificationModelsLoaded = await loadClassificationModels();
+  const faceDetectorModelLoaded = await loadFaceDetectorModel();
 
-  if (modelsLoaded && faceApiModelsLoaded) {
+  if (classificationModelsLoaded && faceDetectorModelLoaded) {
     status.textContent = "Modele gotowe. Zaloguj się, aby rozpocząć.";
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
