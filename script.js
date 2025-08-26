@@ -22,8 +22,8 @@ let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 let faceDetector;
-// ZMIANA: Zamiast flagi, będziemy przechowywać ID interwału
-let faceDetectionInterval = null; 
+// ZMIANA: Zamiast ID interwału, będziemy używać flagi do kontrolowania pętli
+let isDetectingFaces = false;
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -57,27 +57,32 @@ async function loadFaceDetectorModel() {
   }
 }
 
-// ZMIANA: Pętla detekcji jest teraz prostszą funkcją, która nie wywołuje sama siebie
-async function detectFaces() {
-  if (!faceDetector || video.paused || video.ended) return;
+// ZMIANA: Nowa, bardziej wydajna struktura pętli detekcji
+async function detectFacesLoop() {
+  // Pętla działa tak długo, jak flaga isDetectingFaces jest prawdziwa
+  if (isDetectingFaces && faceDetector && !video.paused && !video.ended) {
+    const faces = await faceDetector.estimateFaces(video, { flipHorizontal: false });
+    
+    overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+    
+    faces.forEach(face => {
+      overlayCtx.strokeStyle = '#38bdf8';
+      overlayCtx.lineWidth = 4;
+      overlayCtx.strokeRect(face.box.xMin, face.box.yMin, face.box.width, face.box.height);
 
-  const faces = await faceDetector.estimateFaces(video, { flipHorizontal: false });
-  
-  overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-  
-  faces.forEach(face => {
-    overlayCtx.strokeStyle = '#38bdf8';
-    overlayCtx.lineWidth = 4;
-    overlayCtx.strokeRect(face.box.xMin, face.box.yMin, face.box.width, face.box.height);
-
-    overlayCtx.fillStyle = '#38bdf8';
-    face.keypoints.forEach(keypoint => {
-      overlayCtx.beginPath();
-      overlayCtx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
-      overlayCtx.fill();
+      overlayCtx.fillStyle = '#38bdf8';
+      face.keypoints.forEach(keypoint => {
+        overlayCtx.beginPath();
+        overlayCtx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+        overlayCtx.fill();
+      });
     });
-  });
+
+    // Wywołaj następną klatkę detekcji. Daje to przeglądarce czas na inne zadania.
+    requestAnimationFrame(detectFacesLoop);
+  }
 }
+
 
 function startCamera() {
   stopCamera();
@@ -91,8 +96,10 @@ function startCamera() {
         overlay.width = video.videoWidth;
         overlay.height = video.videoHeight;
         
-        // ZMIANA: Używamy setInterval zamiast requestAnimationFrame
-        faceDetectionInterval = setInterval(detectFaces, 400); // Wykonuj detekcję co 400ms
+        // ZMIANA: Ustawiamy flagę i jednorazowo odpalamy pętlę.
+        // Pętla będzie się sama podtrzymywać dzięki requestAnimationFrame.
+        isDetectingFaces = true;
+        detectFacesLoop();
       });
 
       startBtn.disabled = true;
@@ -103,11 +110,8 @@ function startCamera() {
 }
 
 function stopCamera() {
-  // ZMIANA: Używamy clearInterval do zatrzymania pętli
-  if (faceDetectionInterval) {
-    clearInterval(faceDetectionInterval);
-    faceDetectionInterval = null;
-  }
+  // ZMIANA: Teraz wystarczy ustawić flagę na false, aby zatrzymać pętlę.
+  isDetectingFaces = false;
   if (currentStream) {
     currentStream.getTracks().forEach(track => track.stop());
     currentStream = null;
