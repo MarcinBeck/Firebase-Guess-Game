@@ -21,7 +21,7 @@ let currentStream = null;
 let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
-let faceDetector; // Zmienna dla nowego modelu detekcji twarzy
+let faceDetector;
 let isDetectingFaces = false;
 
 // --- FUNKCJE AI i KAMERY ---
@@ -37,12 +37,12 @@ async function loadClassificationModels() {
     return true;
   } catch (e) {
     status.textContent = "Błąd krytyczny ładowania modeli klasyfikacji.";
-    console.error(e);
+    console.error("Błąd MobileNet/KNN:", e);
     return false;
   }
 }
 
-// NOWA FUNKCJA: Ładowanie modelu do DETEKCJI TWARZY
+// Ładowanie modelu do DETEKCJI TWARZY
 async function loadFaceDetectorModel() {
   status.textContent = "Ładowanie modelu detekcji twarzy...";
   try {
@@ -58,7 +58,7 @@ async function loadFaceDetectorModel() {
   }
 }
 
-// NOWA FUNKCJA: Pętla detekcji twarzy
+// Pętla detekcji twarzy
 async function detectFacesLoop() {
   if (!isDetectingFaces || !faceDetector) return;
 
@@ -66,14 +66,11 @@ async function detectFacesLoop() {
   
   overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
   
-  // Rysowanie wyników
   faces.forEach(face => {
-    // Rysowanie ramki wokół twarzy
     overlayCtx.strokeStyle = '#38bdf8';
     overlayCtx.lineWidth = 4;
     overlayCtx.strokeRect(face.box.xMin, face.box.yMin, face.box.width, face.box.height);
 
-    // Rysowanie punktów kluczowych (oczy, nos, usta)
     overlayCtx.fillStyle = '#38bdf8';
     face.keypoints.forEach(keypoint => {
       overlayCtx.beginPath();
@@ -82,7 +79,6 @@ async function detectFacesLoop() {
     });
   });
 
-  // Uruchom pętlę ponownie w następnej klatce animacji
   requestAnimationFrame(detectFacesLoop);
 }
 
@@ -95,11 +91,10 @@ function startCamera() {
       video.play();
 
       video.addEventListener('loadeddata', () => {
-        // Dopasuj rozmiar canvas do wideo po załadowaniu metadanych
         overlay.width = video.videoWidth;
         overlay.height = video.videoHeight;
         isDetectingFaces = true;
-        detectFacesLoop(); // Uruchom pętlę detekcji
+        detectFacesLoop();
       });
 
       startBtn.disabled = true;
@@ -123,7 +118,6 @@ function stopCamera() {
   predictBtn.disabled = true;
 }
 
-// Funkcje takeSnapshot i predict pozostają bez większych zmian
 async function takeSnapshot(label) {
   if (!net || !classifier) return;
   const ctx = canvas.getContext('2d');
@@ -160,7 +154,7 @@ function updateStatus() {
   }
 }
 
-// Logika Firebase pozostaje bez zmian
+// Logika Firebase (bez zmian)
 async function saveModel() {
   if (!currentUser || !classifier) return;
   
@@ -169,7 +163,6 @@ async function saveModel() {
 
   if (Object.keys(dataset).length === 0) {
       await database.ref(modelPath).remove();
-      console.log("Model lokalny jest pusty, usunięto wpis w Firebase.");
       return;
   };
 
@@ -179,7 +172,6 @@ async function saveModel() {
   }
   
   await database.ref(modelPath).set(serializedDataset);
-  console.log("Model został zapisany w Firebase.");
 }
 
 async function loadModelFromFirebase() {
@@ -200,10 +192,7 @@ async function loadModelFromFirebase() {
     }
     if(classifier) {
         classifier.setClassifierDataset(dataset);
-        console.log("Model został wczytany z Firebase.");
     }
-  } else {
-    console.log("Nie znaleziono zapisanego modelu dla tego użytkownika.");
   }
   updateStatus();
 }
@@ -212,12 +201,10 @@ async function clearData() {
     if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki z bazy danych?")) {
         return;
     }
-    
     try {
       if (currentUser) {
         const modelPath = `models/${currentUser.uid}`;
         await database.ref(modelPath).remove();
-        console.log("Dane z Firebase zostały usunięte.");
       }
       if (classifier) {
           classifier.clearAllClasses();
@@ -231,7 +218,7 @@ async function clearData() {
     }
 }
 
-// Logika logowania pozostaje bez zmian
+// Logika logowania (bez zmian)
 function handleLoggedOutState() {
   currentUser = null;
   stopCamera();
@@ -259,7 +246,7 @@ async function handleLoggedInState(user) {
 
 // ZMODYFIKOWANA INICJALIZACJA APLIKACJI
 async function main() {
-  await tf.setBackend('cpu');
+  // Usunięto setBackend('cpu'), pozwalamy TF.js wybrać najlepszy dostępny
   const classificationModelsLoaded = await loadClassificationModels();
   const faceDetectorModelLoaded = await loadFaceDetectorModel();
 
