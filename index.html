@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+    <script defer src="face-api.min.js"></script>
     <link rel="stylesheet" href="style.css" />
     <title>AI - Rozpoznawanie Symboli</title>
-    <script defer src="face-api.min.js"></script>
   </head>
   <body>
     <header>
@@ -16,10 +16,10 @@
     </header>
     <main>
       <div class="app-container">
-<div class="video-container">
-  <video id="video" autoplay playsinline></video>
-  <canvas id="overlay"></canvas>
-</div>
+        <div class="video-container">
+          <video id="video" autoplay playsinline></video>
+          <canvas id="overlay"></canvas>
+        </div>
         <div class="controls">
           <button id="startBtn">Start kamera</button>
           <button id="stopBtn" disabled>Stop kamera</button>
@@ -51,9 +51,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
     
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.8.6/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.2"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.8.6/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
 
     <script>
       var firebaseConfig = {
@@ -72,7 +72,3 @@
     <script src="script.js"></script>
   </body>
 </html>
-
-
-
-
