@@ -54,7 +54,7 @@ async function loadFaceApiModels() {
   try {
     const MODEL_URL = './models';
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
     await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
     console.log("Modele face-api załadowane.");
     return true;
@@ -283,3 +283,4 @@ predictBtn.addEventListener('click', predict);
 
 // Start!
 main();
+
