@@ -12,7 +12,7 @@
     <header>
       <div id="version-info">
         <span>version: 1.1.1</span>
-        <span>28 sierpnia 2025, 09:10</span>
+        <span>28 sierpnia 2025, 09:45</span>
       </div>
       
       <h1>AI - Rozpoznawanie Symboli</h1>
@@ -29,40 +29,38 @@
         <div class="controls">
           <button id="startBtn">Start kamera</button>
           <button id="stopBtn" disabled>Stop kamera</button>
-          <button id="againBtn" class="btn again">Jeszcze raz!</button>
         </div>
 
-        <div class="classes">
-          <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
-          <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
-          <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
-        </div>
+        <div class="symbol-section" style="display: none;">
+            <div class="classes">
+              <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
+              <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
+              <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
+            </div>
 
-        <button id="predictBtn" disabled>Zgadnij symbol</button>
+            <button id="predictBtn" disabled>Zgadnij symbol</button>
 
-        <div class="status" id="status">Zaloguj się, aby rozpocząć...</div>
-        <div class="prediction" id="prediction"></div>
-        <div class="gallery-container">
-          <div class="gallery-header">
-            <h2>Zebrane próbki:</h2>
-            <button id="clearBtn" class="clear-button" disabled>Wyczyść dane</button>
-          </div>
-          <div class="gallery" id="gallery"></div>
+            <div class="status" id="status"></div>
+            <div class="prediction" id="prediction"></div>
+            <div class="gallery-container">
+              <div class="gallery-header">
+                <h2>Zebrane próbki:</h2>
+                <button id="clearBtn" class="clear-button" disabled>Wyczyść dane</button>
+              </div>
+              <div class="gallery" id="gallery"></div>
+            </div>
         </div>
       </div>
     </main>
     
     <canvas id="canvas" style="display:none;"></canvas>
 
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
     
-    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
 
     <script>
       var firebaseConfig = {
@@ -74,10 +72,10 @@
         messagingSenderId: "1083984624029",
         appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
       };
-      // Inicjalizacja Firebase musi być w głównym skrypcie, gdy używamy 'defer'
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database(); 
     </script>
     
-    <script defer src="script.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>
-
