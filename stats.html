@@ -15,7 +15,6 @@
         .summary { border: 1px solid #1f2937; padding: 2rem; border-radius: 8px; margin-bottom: 3rem; }
         .summary p { margin-bottom: 1rem; }
         .summary .detail { font-size: 1.4rem; color: #94a3b8; padding-left: 2rem; }
-        /* ZMIANA: Usunięto styl grid, kontener jest teraz prostszy */
         .charts-container { display: block; }
         .chart-box { background-color: #1e293b; padding: 2rem; border-radius: 8px; }
         .chart-box h2 { font-size: 1.8rem; margin-bottom: 1.5rem; text-align: center; color: #94a3b8;}
@@ -31,11 +30,6 @@
             <p>Łączna liczba prób odgadnięcia: <span id="total-predictions">Ładowanie...</span></p>
             <p>Ogólna skuteczność modelu: <span id="model-accuracy">Ładowanie...</span></p>
         </div>
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
-
-    <script defer src="stats.js"></script>
 
         <div class="charts-container">
             <div class="chart-box">
@@ -49,6 +43,10 @@
         </p>
     </div>
 
-    <script src="stats.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+    <script defer src="stats.js"></script>
 </body>
 </html>
