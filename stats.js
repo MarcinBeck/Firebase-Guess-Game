@@ -2,12 +2,10 @@
 
 // --- ELEMENTY UI ---
 const totalSamplesEl = document.getElementById('total-samples');
+const manualSamplesEl = document.getElementById('manual-samples'); // Nowy
+const correctionSamplesEl = document.getElementById('correction-samples'); // Nowy
 const totalPredictionsEl = document.getElementById('total-predictions');
 const modelAccuracyEl = document.getElementById('model-accuracy');
-const statsContainer = document.querySelector('.stats-container');
-const samplesChartCtx = document.getElementById('samplesChart').getContext('2d');
-const accuracyChartCtx = document.getElementById('accuracyChart').getContext('2d');
-
 let samplesChart, accuracyChart; // Zmienne do przechowywania instancji wykresów
 
 const database = firebase.database();
@@ -45,6 +43,12 @@ function listenForStats(uid) {
 
 function updateSamplesSummary(samples) {
     totalSamplesEl.textContent = samples.length;
+
+    // NOWA LOGIKA: Zliczanie próbek według źródła
+    const manualSamples = samples.filter(s => s.source === 'manual').length;
+    const correctionSamples = samples.filter(s => s.source === 'correction').length;
+    manualSamplesEl.textContent = manualSamples;
+    correctionSamplesEl.textContent = correctionSamples;
 }
 
 function updatePredictionsSummary(predictions) {
