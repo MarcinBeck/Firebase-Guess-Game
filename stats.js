@@ -21,6 +21,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let accuracyChart;
 
+    let currentSort = { column: 'timestamp', direction: 'desc' }; // Domyślne sortowanie
+
     const database = firebase.database();
 
     firebase.auth().onAuthStateChanged(user => {
