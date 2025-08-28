@@ -1,9 +1,6 @@
 'use strict';
 
 window.addEventListener('DOMContentLoaded', () => {
-    //
-    // CAŁA LOGIKA APLIKACJI ZNAJDUJE SIĘ WEWNĄTRZ TEGO LISTNERA
-    //
 
     // --- ELEMENTY UI ---
     const loader = document.getElementById('loader');
@@ -34,7 +31,6 @@ window.addEventListener('DOMContentLoaded', () => {
     let blazeFaceModel;
     let detectionIntervalId = null;
     let lastDetectedFace = null;
-    let lastLogits = null;
 
     // --- FUNKCJE AI i KAMERY ---
 
@@ -139,9 +135,9 @@ window.addEventListener('DOMContentLoaded', () => {
     async function handleIncorrectPrediction(predictedSymbol, correctSymbol, logits) {
         logPredictionAttempt(predictedSymbol, false, correctSymbol);
         classifier.addExample(logits, correctSymbol);
-        await saveModel();
+        // ZMIANA: Zapisujemy tylko nową próbkę, a nie cały model
+        await logTrainingSample(correctSymbol, 'correction', logits);
         updateStatus();
-        logTrainingSample(correctSymbol, 'correction');
         predictionEl.textContent = `Dziękuję! Zapamiętam, że to był ${correctSymbol}.`;
         setTimeout(resetPredictionUI, 2000);
     }
@@ -189,9 +185,9 @@ window.addEventListener('DOMContentLoaded', () => {
       gallery.appendChild(img);
       const logits = net.infer(canvas, true);
       classifier.addExample(logits, label);
-      await saveModel();
       updateStatus();
-      logTrainingSample(label, 'manual');
+      // ZMIANA: Zapisujemy tylko nową próbkę, a nie cały model
+      await logTrainingSample(label, 'manual', logits);
     }
     async function predict() {
       if (!net || !classifier || !lastDetectedFace) return;
@@ -220,41 +216,42 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LOGIKA FIREBASE ---
-    async function saveModel() {
-      if (!currentUser || !classifier) return;
-      const dataset = classifier.getClassifierDataset();
-      const modelPath = `models/${currentUser.uid}`;
-      if (Object.keys(dataset).length === 0) { await database.ref(modelPath).remove(); return; };
-      const serializedDataset = {};
-      for (const key of Object.keys(dataset)) { serializedDataset[key] = tensorToJSON(dataset[key]); }
-      await database.ref(modelPath).set(serializedDataset);
-    }
+    
+    // USUNIĘTO: Funkcja saveModel() jest już niepotrzebna
+    
+    // ZMIANA: Ta funkcja teraz odbudowuje model z pojedynczych próbek
     async function loadModelFromFirebase() {
       if (!currentUser || !classifier) return;
       classifier.clearAllClasses();
       gallery.innerHTML = "";
-      const modelPath = `models/${currentUser.uid}`;
-      const snapshot = await database.ref(modelPath).once('value');
-      const serializedDataset = snapshot.val();
-      if (serializedDataset) {
-        const dataset = {};
-        for (const key of Object.keys(serializedDataset)) {
-            const data = serializedDataset[key];
-            const shape = [data.length / 1024, 1024];
-            dataset[key] = tf.tensor2d(data, shape);
+      const samplesPath = `training_samples/${currentUser.uid}`;
+      const snapshot = await database.ref(samplesPath).once('value');
+      const allSamples = snapshot.val();
+
+      if (allSamples) {
+        status.textContent = 'Odtwarzanie modelu z zapisanych próbek...';
+        const sampleCount = Object.keys(allSamples).length;
+        let processedCount = 0;
+
+        for (const key of Object.keys(allSamples)) {
+            const sample = allSamples[key];
+            const tensor = tf.tensor(sample.tensor);
+            classifier.addExample(tensor, sample.symbol);
+            processedCount++;
         }
-        if(classifier) {
-            classifier.setClassifierDataset(dataset);
-            gallery.innerHTML = `<p class="gallery-info">Model wczytany z bazy. Galeria jest pusta, ponieważ obrazki nie są zapisywane.</p>`;
-        }
+        console.log(`Odtworzono model z ${processedCount} próbek.`);
+        gallery.innerHTML = `<p class="gallery-info">Model wczytany z ${processedCount} próbek. Galeria jest pusta, ponieważ obrazki nie są zapisywane.</p>`;
+      } else {
+        console.log("Nie znaleziono zapisanych próbek dla tego użytkownika.");
       }
       updateStatus();
     }
+
     async function clearData() {
         if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki?")) return;
         try {
           if (currentUser) {
-            await database.ref(`models/${currentUser.uid}`).remove();
+            // ZMIANA: Usuwamy tylko statystyki, nie ma już gałęzi /models/
             await database.ref(`training_samples/${currentUser.uid}`).remove();
             await database.ref(`prediction_attempts/${currentUser.uid}`).remove();
           }
@@ -264,11 +261,19 @@ window.addEventListener('DOMContentLoaded', () => {
           updateStatus();
         } catch (error) { console.error("Błąd podczas czyszczenia danych:", error); }
     }
-    function logTrainingSample(symbol, source) {
-        if (!currentUser) return;
-        const sampleData = { timestamp: firebase.database.ServerValue.TIMESTAMP, symbol: symbol, source: source };
+
+    // ZMIANA: Ta funkcja przejmuje odpowiedzialność za zapis danych AI
+    function logTrainingSample(symbol, source, logits) {
+        if (!currentUser || !logits) return;
+        const sampleData = {
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            symbol: symbol,
+            source: source,
+            tensor: tensorToJSON(logits) // Zapisujemy dane tensora
+        };
         database.ref(`training_samples/${currentUser.uid}`).push(sampleData);
     }
+
     function logPredictionAttempt(predictedSymbol, wasCorrect, correctSymbol = null) {
         if (!currentUser) return;
         const attemptData = {
@@ -320,8 +325,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
-    const againBtn = document.getElementById('againBtn');
-    if (againBtn) { againBtn.addEventListener('click', () => console.log("'Jeszcze raz' clicked")); }
     startBtn.addEventListener('click', startCamera);
     stopBtn.addEventListener('click', stopCamera);
     clearBtn.addEventListener('click', clearData);
