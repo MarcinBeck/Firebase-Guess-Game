@@ -224,27 +224,47 @@ async function saveModel() {
   for (const key of Object.keys(dataset)) { serializedDataset[key] = tensorToJSON(dataset[key]); }
   await database.ref(modelPath).set(serializedDataset);
 }
+
+// ZMIANA: Dodano logi diagnostyczne do tej funkcji
 async function loadModelFromFirebase() {
-  if (!currentUser || !classifier) return;
+  console.log("1. Rozpoczynam wczytywanie modelu z Firebase...");
+  if (!currentUser || !classifier) {
+    console.warn("Wczytywanie przerwane: brak użytkownika lub klasyfikatora.");
+    return;
+  }
+  
   classifier.clearAllClasses();
   gallery.innerHTML = "";
   const modelPath = `models/${currentUser.uid}`;
   const snapshot = await database.ref(modelPath).once('value');
   const serializedDataset = snapshot.val();
+
+  console.log("2. Surowe dane pobrane z Firebase:", serializedDataset);
+
   if (serializedDataset) {
+    console.log("3. Znaleziono dane. Rozpoczynam deserializację...");
+    console.log("4. Liczba próbek w klasyfikatorze PRZED załadowaniem:", classifier.getClassExampleCount());
+    
     const dataset = {};
     for (const key of Object.keys(serializedDataset)) {
         const data = serializedDataset[key];
         const shape = [data.length / 1024, 1024];
         dataset[key] = tf.tensor2d(data, shape);
     }
+    
     if(classifier) {
         classifier.setClassifierDataset(dataset);
+        console.log("5. Liczba próbek w klasyfikatorze PO załadowaniu:", classifier.getClassExampleCount());
         gallery.innerHTML = `<p class="gallery-info">Model wczytany z bazy. Galeria jest pusta, ponieważ obrazki nie są zapisywane.</p>`;
     }
+  } else {
+    console.log("Nie znaleziono zapisanego modelu dla tego użytkownika.");
   }
+  
   updateStatus();
+  console.log("6. Zakończono proces wczytywania modelu.");
 }
+
 async function clearData() {
     if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki?")) return;
     try {
@@ -315,8 +335,6 @@ async function main() {
 }
 
 // --- EVENT LISTENERS ---
-const againBtn = document.getElementById('againBtn');
-if (againBtn) { againBtn.addEventListener('click', () => console.log("'Jeszcze raz' clicked")); }
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
 clearBtn.addEventListener('click', clearData);
