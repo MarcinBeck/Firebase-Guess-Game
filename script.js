@@ -1,10 +1,6 @@
 'use strict';
 
 window.addEventListener('DOMContentLoaded', () => {
-    //
-    // CAŁA LOGIKA APLIKACJI ZNAJDUJE SIĘ WEWNĄTRZ TEGO LISTNERA
-    //
-
     // --- ELEMENTY UI ---
     const loader = document.getElementById('loader');
     const loaderStatus = document.getElementById('loader-status');
