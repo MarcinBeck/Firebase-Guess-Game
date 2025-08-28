@@ -22,7 +22,8 @@ let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 let blazeFaceModel;
-let faceDetectionTimeoutId = null;
+let objectDetectorModel; // NOWA ZMIENNA: Model do wykrywania obiektów
+let detectionIntervalId = null;
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -54,28 +55,61 @@ async function loadFaceDetectorModel() {
   }
 }
 
-async function detectFacesLoop() {
-  if (blazeFaceModel && !video.paused && !video.ended) {
-    const predictions = await blazeFaceModel.estimateFaces(video, false);
+// NOWA FUNKCJA: Ładowanie modelu COCO-SSD
+async function loadObjectDetectorModel() {
+  status.textContent = "Ładowanie modelu COCO-SSD...";
+  try {
+    objectDetectorModel = await cocoSsd.load();
+    console.log("Model COCO-SSD załadowany.");
+    return true;
+  } catch (e) {
+    console.error("Błąd ładowania modelu COCO-SSD:", e);
+    status.textContent = "Błąd ładowania modelu detekcji obiektów.";
+    return false;
+  }
+}
+
+// ZMIANA: Pętla detekcji obsługuje teraz DWA modele
+async function runDetectionLoop() {
+  if (!video.paused && !video.ended) {
+    // 1. Detekcja obiektów (kartki)
+    const objects = await objectDetectorModel.detect(video);
     
+    // 2. Detekcja twarzy
+    const faces = await blazeFaceModel.estimateFaces(video, false);
+    
+    // 3. Rysowanie
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-
-    // LOG DIAGNOSTYCZNY: Sprawdzamy, czy model cokolwiek wykrywa
-    console.log(`Wykryto twarzy: ${predictions.length}`);
     
-    predictions.forEach(prediction => {
-        const start = prediction.topLeft;
-        const end = prediction.bottomRight;
+    // Rysowanie ramek dla twarzy (niebieska)
+    faces.forEach(face => {
+        const start = face.topLeft;
+        const end = face.bottomRight;
         const size = [end[0] - start[0], end[1] - start[1]];
-
         overlayCtx.strokeStyle = '#38bdf8';
         overlayCtx.lineWidth = 4;
         overlayCtx.strokeRect(start[0], start[1], size[0], size[1]);
     });
 
-    requestAnimationFrame(detectFacesLoop);
+    // Rysowanie ramek dla obiektów (kartki)
+    objects.forEach(object => {
+      // Szukamy tylko obiektów, które model uzna za "książkę"
+      if (object.class === 'book') {
+        overlayCtx.strokeStyle = '#facc15'; // Żółty kolor
+        overlayCtx.lineWidth = 4;
+        overlayCtx.strokeRect(object.bbox[0], object.bbox[1], object.bbox[2], object.bbox[3]);
+
+        // Dodanie etykiety
+        overlayCtx.fillStyle = '#facc15';
+        overlayCtx.font = '16px sans-serif';
+        overlayCtx.fillText('Kartka?', object.bbox[0] + 5, object.bbox[1] + 20);
+      }
+    });
+
+    detectionIntervalId = setTimeout(runDetectionLoop, 400);
   }
 }
+
 
 function startCamera() {
   stopCamera();
@@ -85,16 +119,12 @@ function startCamera() {
       video.srcObject = stream;
       video.play();
 
-      console.log("Kamera uruchomiona, rozpoczynam sprawdzanie gotowości wideo...");
       const readyCheckInterval = setInterval(() => {
-          // LOG DIAGNOSTYCZNY: Sprawdzamy stan wideo
-          console.log(`Sprawdzam stan wideo... Aktualny stan (readyState): ${video.readyState}`);
           if (video.readyState >= 3) {
               clearInterval(readyCheckInterval);
-              console.log(`Wideo gotowe! Wymiary: ${video.videoWidth}x${video.videoHeight}. Uruchamiam pętlę detekcji.`);
               overlay.width = video.videoWidth;
               overlay.height = video.videoHeight;
-              detectFacesLoop();
+              runDetectionLoop(); // ZMIANA NAZWY
           }
       }, 200);
 
@@ -106,9 +136,9 @@ function startCamera() {
 }
 
 function stopCamera() {
-  if (faceDetectionTimeoutId) {
-      clearTimeout(faceDetectionTimeoutId);
-      faceDetectionTimeoutId = null;
+  if (detectionIntervalId) {
+    clearTimeout(detectionIntervalId);
+    detectionIntervalId = null;
   }
   if (currentStream) {
     currentStream.getTracks().forEach(track => track.stop());
@@ -122,7 +152,7 @@ function stopCamera() {
   predictBtn.disabled = true;
 }
 
-// Reszta kodu bez zmian
+// Reszta kodu pozostaje bez zmian
 async function takeSnapshot(label) {
   if (!net || !classifier) return;
   const ctx = canvas.getContext('2d');
@@ -187,7 +217,7 @@ async function loadModelFromFirebase() {
 
   if (serializedDataset) {
     const dataset = {};
-    for (const key of Object.keys(serializedDataset)) {
+    for (const key of Object.keys(dataset)) {
         const data = serializedDataset[key];
         const shape = [data.length / 1024, 1024];
         dataset[key] = tf.tensor2d(data, shape);
@@ -245,32 +275,4 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-async function main() {
-  const classificationModelsLoaded = await loadClassificationModels();
-  const faceDetectorModelLoaded = await loadFaceDetectorModel();
-
-  if (classificationModelsLoaded && faceDetectorModelLoaded) {
-    status.textContent = "Modele gotowe. Zaloguj się, aby rozpocząć.";
-    firebase.auth().onAuthStateChanged(user => {
-      if (user) {
-        handleLoggedInState(user);
-      } else {
-        handleLoggedOutState();
-      }
-    });
-  } else {
-      status.textContent = "Błąd krytyczny. Nie udało się załadować wszystkich modeli AI.";
-  }
-}
-
-// Event Listeners
-startBtn.addEventListener('click', startCamera);
-stopBtn.addEventListener('click', stopCamera);
-clearBtn.addEventListener('click', clearData);
-classButtons.forEach(btn => {
-  btn.addEventListener('click', () => takeSnapshot(btn.dataset.class));
-});
-predictBtn.addEventListener('click', predict);
-
-// Start!
-main();
+// ZMIANA: In
