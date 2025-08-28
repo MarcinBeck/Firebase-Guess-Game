@@ -42,7 +42,6 @@ async function loadClassificationModels() {
     classifier = knnClassifier.create();
     return true;
   } catch (e) {
-    // POPRAWKA: Komunikat o błędzie na loaderze
     loaderStatus.textContent = "Błąd krytyczny ładowania modeli klasyfikacji.";
     console.error("Błąd MobileNet/KNN:", e);
     return false;
@@ -55,7 +54,6 @@ async function loadFaceDetectorModel() {
     blazeFaceModel = await blazeface.load();
     return true;
   } catch (e) {
-    // POPRAWKA: Komunikat o błędzie na loaderze
     loaderStatus.textContent = "Błąd ładowania modelu detekcji twarzy.";
     console.error("Błąd ładowania modelu BlazeFace:", e);
     return false;
@@ -104,7 +102,7 @@ function startCamera() {
       }, 200);
       startBtn.disabled = true;
       stopBtn.disabled = false;
-    }).catch(err => alert("Błąd kamery: ".concat(err.message)));
+    }).catch(err => showToast("Błąd kamery: ".concat(err.message), 'error'));
 }
 
 function stopCamera() {
@@ -120,6 +118,7 @@ function stopCamera() {
 // --- LOGIKA FEEDBACKU ---
 
 function clearFeedbackUI() { feedbackContainer.innerHTML = ''; }
+
 function resetPredictionUI() {
     clearFeedbackUI();
     predictionEl.textContent = '';
@@ -179,6 +178,13 @@ async function takeSnapshot(label) {
   canvas.width = 150;
   canvas.height = 150;
   ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 150, 150);
+  
+  // Wyczyść informację o wczytanym modelu z galerii, jeśli tam jest
+  const galleryInfo = gallery.querySelector('.gallery-info');
+  if (galleryInfo) {
+      gallery.innerHTML = '';
+  }
+
   const img = document.createElement('img');
   img.src = canvas.toDataURL('image/png');
   gallery.appendChild(img);
@@ -215,15 +221,96 @@ function updateStatus() {
 }
 
 // --- LOGIKA FIREBASE ---
-async function saveModel() { /* ... bez zmian ... */ }
-async function loadModelFromFirebase() { /* ... bez zmian ... */ }
-async function clearData() { /* ... bez zmian ... */ }
-function logTrainingSample(symbol, source) { /* ... bez zmian ... */ }
-function logPredictionAttempt(predictedSymbol, wasCorrect, correctSymbol = null) { /* ... bez zmian ... */ }
+async function saveModel() {
+  if (!currentUser || !classifier) return;
+  const dataset = classifier.getClassifierDataset();
+  const modelPath = `models/${currentUser.uid}`;
+  if (Object.keys(dataset).length === 0) { await database.ref(modelPath).remove(); return; };
+  const serializedDataset = {};
+  for (const key of Object.keys(dataset)) { serializedDataset[key] = tensorToJSON(dataset[key]); }
+  await database.ref(modelPath).set(serializedDataset);
+}
+
+// ZMIANA W TEJ FUNKCJI
+async function loadModelFromFirebase() {
+  if (!currentUser || !classifier) return;
+  classifier.clearAllClasses();
+  gallery.innerHTML = "";
+  const modelPath = `models/${currentUser.uid}`;
+  const snapshot = await database.ref(modelPath).once('value');
+  const serializedDataset = snapshot.val();
+  if (serializedDataset) {
+    const dataset = {};
+    for (const key of Object.keys(serializedDataset)) {
+        const data = serializedDataset[key];
+        const shape = [data.length / 1024, 1024];
+        dataset[key] = tf.tensor2d(data, shape);
+    }
+    if(classifier) {
+        classifier.setClassifierDataset(dataset);
+        console.log("Model z Firebase załadowany do klasyfikatora.");
+        // POPRAWKA: Dodajemy informację w galerii
+        gallery.innerHTML = `<p class="gallery-info">Model wczytany z bazy. Galeria próbek jest pusta, ponieważ obrazki nie są zapisywane.</p>`;
+    }
+  } else {
+    console.log("Nie znaleziono zapisanego modelu dla tego użytkownika.");
+  }
+  updateStatus();
+}
+
+async function clearData() {
+    if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki?")) return;
+    try {
+      if (currentUser) {
+        await database.ref(`models/${currentUser.uid}`).remove();
+        await database.ref(`training_samples/${currentUser.uid}`).remove();
+        await database.ref(`prediction_attempts/${currentUser.uid}`).remove();
+      }
+      if (classifier) classifier.clearAllClasses();
+      gallery.innerHTML = "";
+      predictionEl.textContent = "Wyczyszczono dane.";
+      updateStatus();
+    } catch (error) { console.error("Błąd podczas czyszczenia danych:", error); }
+}
+
+function logTrainingSample(symbol, source) {
+    if (!currentUser) return;
+    const sampleData = { timestamp: firebase.database.ServerValue.TIMESTAMP, symbol: symbol, source: source };
+    database.ref(`training_samples/${currentUser.uid}`).push(sampleData);
+}
+function logPredictionAttempt(predictedSymbol, wasCorrect, correctSymbol = null) {
+    if (!currentUser) return;
+    const attemptData = {
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        predictedSymbol: predictedSymbol,
+        wasCorrect: wasCorrect
+    };
+    if (!wasCorrect && correctSymbol) {
+        attemptData.correctSymbol = correctSymbol;
+    }
+    database.ref(`prediction_attempts/${currentUser.uid}`).push(attemptData);
+}
 
 // --- ZARZĄDZANIE STANEM LOGOWANIA ---
-function handleLoggedOutState() { /* ... bez zmian ... */ }
-async function handleLoggedInState(user) { /* ... bez zmian ... */ }
+function handleLoggedOutState() {
+  currentUser = null;
+  stopCamera();
+  authContainer.innerHTML = '<button id="login-btn">Zaloguj jako Gość</button>';
+  status.textContent = "Zaloguj się, aby rozpocząć.";
+  predictionEl.textContent = "";
+  gallery.innerHTML = "";
+  clearBtn.disabled = true;
+  if(classifier) classifier.clearAllClasses();
+  document.getElementById('login-btn').addEventListener('click', () => { firebase.auth().signInAnonymously(); });
+}
+async function handleLoggedInState(user) {
+  currentUser = user;
+  authContainer.innerHTML = `<span class="welcome-message">Witaj, Gościu!</span><button id="logout-btn" class="logout-btn">Wyloguj</button>`;
+  document.getElementById('logout-btn').addEventListener('click', () => firebase.auth().signOut());
+  clearBtn.disabled = false;
+  status.textContent = "Wczytywanie zapisanego modelu...";
+  await loadModelFromFirebase();
+}
 
 // --- INICJALIZACJA APLIKACJI ---
 async function main() {
@@ -243,10 +330,7 @@ async function main() {
   }
 }
 
-// Reszta kodu pozostaje bez zmian, ale wklejam dla kompletności
-// Event Listeners
-const againBtn = document.getElementById('againBtn');
-if (againBtn) { againBtn.addEventListener('click', () => console.log("'Jeszcze raz' clicked")); }
+// --- EVENT LISTENERS ---
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
 clearBtn.addEventListener('click', clearData);
@@ -255,5 +339,5 @@ classButtons.forEach(btn => {
 });
 predictBtn.addEventListener('click', predict);
 
-// Start!
+// --- START ---
 main();
