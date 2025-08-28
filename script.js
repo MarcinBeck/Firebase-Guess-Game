@@ -21,7 +21,7 @@ let currentStream = null;
 let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
-let blazeFaceModel; // ZMIANA: Nowa nazwa dla modelu detekcji twarzy
+let blazeFaceModel;
 let faceDetectionTimeoutId = null;
 
 // --- FUNKCJE AI i KAMERY ---
@@ -41,7 +41,6 @@ async function loadClassificationModels() {
   }
 }
 
-// NOWA WERSJA: Ładowanie modelu BlazeFace
 async function loadFaceDetectorModel() {
   status.textContent = "Ładowanie modelu BlazeFace...";
   try {
@@ -55,19 +54,21 @@ async function loadFaceDetectorModel() {
   }
 }
 
-// NOWA WERSJA: Pętla detekcji dla BlazeFace
 async function detectFacesLoop() {
   if (blazeFaceModel && !video.paused && !video.ended) {
     const predictions = await blazeFaceModel.estimateFaces(video, false);
     
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+    // LOG DIAGNOSTYCZNY: Sprawdzamy, czy model cokolwiek wykrywa
+    console.log(`Wykryto twarzy: ${predictions.length}`);
     
     predictions.forEach(prediction => {
         const start = prediction.topLeft;
         const end = prediction.bottomRight;
         const size = [end[0] - start[0], end[1] - start[1]];
 
-        overlayCtx.strokeStyle = '#38bdf8'; // Niebieski, pasujący do interfejsu
+        overlayCtx.strokeStyle = '#38bdf8';
         overlayCtx.lineWidth = 4;
         overlayCtx.strokeRect(start[0], start[1], size[0], size[1]);
     });
@@ -76,7 +77,6 @@ async function detectFacesLoop() {
   }
 }
 
-// NOWA WERSJA: Niezawodna funkcja startu kamery z pliku testowego
 function startCamera() {
   stopCamera();
   navigator.mediaDevices.getUserMedia({ video: true })
@@ -85,9 +85,13 @@ function startCamera() {
       video.srcObject = stream;
       video.play();
 
+      console.log("Kamera uruchomiona, rozpoczynam sprawdzanie gotowości wideo...");
       const readyCheckInterval = setInterval(() => {
+          // LOG DIAGNOSTYCZNY: Sprawdzamy stan wideo
+          console.log(`Sprawdzam stan wideo... Aktualny stan (readyState): ${video.readyState}`);
           if (video.readyState >= 3) {
               clearInterval(readyCheckInterval);
+              console.log(`Wideo gotowe! Wymiary: ${video.videoWidth}x${video.videoHeight}. Uruchamiam pętlę detekcji.`);
               overlay.width = video.videoWidth;
               overlay.height = video.videoHeight;
               detectFacesLoop();
@@ -101,11 +105,8 @@ function startCamera() {
     }).catch(err => alert("Błąd kamery: ".concat(err.message)));
 }
 
-// NOWA WERSJA: Niezawodna funkcja stopu kamery
 function stopCamera() {
-  // Zatrzymanie pętli jest teraz obsługiwane przez sprawdzanie warunku `!video.paused` w pętli,
-  // ale czyścimy też dla pewności.
-  if (faceDetectionTimeoutId) { // Mimo że nie używamy, zostawiamy dla czystości
+  if (faceDetectionTimeoutId) {
       clearTimeout(faceDetectionTimeoutId);
       faceDetectionTimeoutId = null;
   }
@@ -121,7 +122,7 @@ function stopCamera() {
   predictBtn.disabled = true;
 }
 
-// Reszta kodu pozostaje w większości bez zmian
+// Reszta kodu bez zmian
 async function takeSnapshot(label) {
   if (!net || !classifier) return;
   const ctx = canvas.getContext('2d');
@@ -244,10 +245,9 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-// ZMODYFIKOWANA INICJALIZACJA APLIKACJI
 async function main() {
   const classificationModelsLoaded = await loadClassificationModels();
-  const faceDetectorModelLoaded = await loadFaceDetectorModel(); // Zmieniona nazwa funkcji
+  const faceDetectorModelLoaded = await loadFaceDetectorModel();
 
   if (classificationModelsLoaded && faceDetectorModelLoaded) {
     status.textContent = "Modele gotowe. Zaloguj się, aby rozpocząć.";
