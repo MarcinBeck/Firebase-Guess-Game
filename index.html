@@ -11,8 +11,8 @@
   <body>
     <header>
       <div id="version-info">
-        <span>version: 1.2.1</span>
-        <span>28 sierpnia 2025, 10:06</span>
+        <span>version: 1.2.2</span>
+        <span>28 sierpnia 2025, 10:15</span>
       </div>
       
       <h1>AI - Rozpoznawanie Symboli</h1>
@@ -29,26 +29,25 @@
         <div class="controls">
           <button id="startBtn">Start kamera</button>
           <button id="stopBtn" disabled>Stop kamera</button>
+          <button id="againBtn" class="btn again">Jeszcze raz!</button>
         </div>
 
-        <div class="symbol-section">
-            <div class="classes">
-              <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
-              <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
-              <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
-            </div>
+        <div class="classes">
+          <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
+          <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
+          <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
+        </div>
 
-            <button id="predictBtn" disabled>Zgadnij symbol</button>
+        <button id="predictBtn" disabled>Zgadnij symbol</button>
 
-            <div class="status" id="status"></div>
-            <div class="prediction" id="prediction"></div>
-            <div class="gallery-container">
-              <div class="gallery-header">
-                <h2>Zebrane próbki:</h2>
-                <button id="clearBtn" class="clear-button" disabled>Wyczyść dane</button>
-              </div>
-              <div class="gallery" id="gallery"></div>
-            </div>
+        <div class="status" id="status">Zaloguj się, aby rozpocząć...</div>
+        <div class="prediction" id="prediction"></div>
+        <div class="gallery-container">
+          <div class="gallery-header">
+            <h2>Zebrane próbki:</h2>
+            <button id="clearBtn" class="clear-button" disabled>Wyczyść dane</button>
+          </div>
+          <div class="gallery" id="gallery"></div>
         </div>
       </div>
     </main>
@@ -59,11 +58,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
     
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.2"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.0.4"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 
     <script>
       var firebaseConfig = {
@@ -82,5 +81,3 @@
     <script src="script.js"></script>
   </body>
 </html>
-
-
