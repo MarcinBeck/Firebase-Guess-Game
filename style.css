@@ -39,7 +39,7 @@ main {
   gap: 1.5rem;
 }
 
-/* POPRAWKA: Dodajemy style z pliku testowego */
+/* POPRAWIONE STYLE DLA WIDEO I PŁÓTNA */
 .video-container {
   position: relative;
   width: 100%;
