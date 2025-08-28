@@ -103,7 +103,6 @@ button:disabled {
   min-height: 20px;
 }
 
-/* ZMIANA: Nowe style dla obszaru predykcji i feedbacku */
 #prediction-area {
     min-height: 100px;
     width: 100%;
