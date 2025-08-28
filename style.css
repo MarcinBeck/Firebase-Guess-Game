@@ -39,26 +39,29 @@ main {
   gap: 1.5rem;
 }
 
-/* KLUCZOWA POPRAWKA: Te dwa bloki stylów muszą istnieć */
+/* OSTATECZNA POPRAWKA: Używamy CSS Grid do idealnego nałożenia warstw */
 .video-container {
-  position: relative;
+  display: grid; /* Ustawiamy kontener jako siatkę */
   width: 100%;
   max-width: 500px;
 }
 
+video, #overlay {
+  /* Oba elementy umieszczamy w tym samym miejscu siatki (pierwszy wiersz, pierwsza kolumna) */
+  grid-area: 1 / 1 / 2 / 2; 
+  width: 100%;
+  border-radius: 12px;
+}
+
 #overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 10;
+  z-index: 10; /* Upewniamy się, że płótno jest na wierzchu */
 }
 
 video {
-  width: 100%;
   border: 2px solid #1f2937;
-  border-radius: 12px;
   background: #000;
 }
+
 
 button {
   background: #1f2937;
