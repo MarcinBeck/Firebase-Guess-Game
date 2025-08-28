@@ -144,12 +144,15 @@ async function takeSnapshot(label) {
   logTrainingSample(label, 'manual');
 }
 
+// PRZEBUDOWANA FUNKCJA PREdykcji Z PĘTLĄ ZWROTNĄ
 async function predict() {
   if (!net || !classifier || !lastDetectedFace) return;
   if (classifier.getNumClasses() === 0) {
     predictionEl.textContent = "Najpierw dodaj próbki!";
     return;
   }
+
+  // Krok 1: Kadrowanie obrazu (tak jak poprzednio)
   const faceBox = lastDetectedFace;
   const cropStartX = faceBox.topLeft[0];
   const cropStartY = faceBox.bottomRight[1];
@@ -160,10 +163,41 @@ async function predict() {
   canvas.width = 150;
   canvas.height = 150;
   ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 150, 150);
-
   const logits = net.infer(canvas, true);
+
+  // Krok 2: Predykcja
   const result = await classifier.predictClass(logits);
-  predictionEl.textContent = `Wynik: ${result.label} (pewność ${(result.confidences[result.label] * 100).toFixed(1)}%)`;
+  predictionEl.textContent = `Model zgaduje: ${result.label} (pewność ${(result.confidences[result.label] * 100).toFixed(1)}%)`;
+
+  // Krok 3: Pytanie o informację zwrotną (Feedback)
+  setTimeout(async () => {
+    const isCorrect = confirm(`Model zgaduje: ${result.label}. Czy to poprawna odpowiedź?`);
+
+    if (isCorrect) {
+      // Jeśli odpowiedź jest poprawna, zapisujemy ją w statystykach
+      logPredictionAttempt(result.label, true);
+      predictionEl.textContent = "Dziękuję za potwierdzenie!";
+    } else {
+      // Jeśli odpowiedź jest błędna, prosimy o korektę
+      let correctSymbol = prompt(`Podaj poprawny symbol (${classNames.join(', ')})`).toUpperCase();
+      
+      // Prosta walidacja
+      while(!classNames.includes(correctSymbol)) {
+        correctSymbol = prompt(`Niepoprawny symbol. Podaj jeden z: ${classNames.join(', ')}`).toUpperCase();
+      }
+
+      // Zapisujemy błędną próbę w statystykach
+      logPredictionAttempt(result.label, false, correctSymbol);
+      
+      // Używamy tej korekty jako nowej próbki do nauki!
+      classifier.addExample(logits, correctSymbol);
+      await saveModel();
+      updateStatus();
+      logTrainingSample(correctSymbol, 'correction');
+      
+      predictionEl.textContent = `Dziękuję! Zapamiętam, że to był ${correctSymbol}.`;
+    }
+  }, 100); // Małe opóźnienie, aby użytkownik zdążył zobaczyć predykcję
 }
 
 function updateStatus() {
@@ -203,13 +237,14 @@ async function loadModelFromFirebase() {
   updateStatus();
 }
 
+// ZMIANA: `clearData` usuwa teraz również statystyki predykcji
 async function clearData() {
     if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki?")) return;
     try {
-      // Usuwamy zarówno model jak i statystyki próbek
       if (currentUser) {
         await database.ref(`models/${currentUser.uid}`).remove();
         await database.ref(`training_samples/${currentUser.uid}`).remove();
+        await database.ref(`prediction_attempts/${currentUser.uid}`).remove(); // DODANO
       }
       if (classifier) classifier.clearAllClasses();
       gallery.innerHTML = "";
@@ -218,7 +253,6 @@ async function clearData() {
     } catch (error) { console.error("Błąd podczas czyszczenia danych:", error); }
 }
 
-// Funkcja zapisująca pojedynczą próbkę do statystyk
 function logTrainingSample(symbol, source) {
     if (!currentUser) return;
     const sampleData = {
@@ -228,6 +262,26 @@ function logTrainingSample(symbol, source) {
     };
     database.ref(`training_samples/${currentUser.uid}`).push(sampleData);
 }
+
+// NOWA FUNKCJA: Zapisuje próbę predykcji do statystyk
+function logPredictionAttempt(predictedSymbol, wasCorrect, correctSymbol = null) {
+    if (!currentUser) return;
+
+    const attemptData = {
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        predictedSymbol: predictedSymbol,
+        wasCorrect: wasCorrect
+    };
+
+    if (!wasCorrect && correctSymbol) {
+        attemptData.correctSymbol = correctSymbol;
+    }
+
+    database.ref(`prediction_attempts/${currentUser.uid}`).push(attemptData)
+      .then(() => console.log("Zapisano próbę predykcji w statystykach."))
+      .catch(error => console.error("Błąd zapisu predykcji:", error));
+}
+
 
 // --- ZARZĄDZANIE STANEM LOGOWANIA ---
 function handleLoggedOutState() {
