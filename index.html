@@ -11,8 +11,8 @@
   <body>
     <header>
       <div id="version-info">
-        <span>version: 1.4.3</span>
-        <span>28 sierpnia 2025, 11:33</span>
+        <span>version: 1.5.0</span>
+        <span>28 sierpnia 2025, 11:55</span>
         <a href="stats.html" class="stats-link">Statystyki</a>
       </div>
       
@@ -30,7 +30,6 @@
         <div class="controls">
           <button id="startBtn">Start kamera</button>
           <button id="stopBtn" disabled>Stop kamera</button>
-          <button id="againBtn" class="btn again">Jeszcze raz!</button>
         </div>
 
         <div class="classes">
@@ -42,7 +41,12 @@
         <button id="predictBtn" disabled>Zgadnij symbol</button>
 
         <div class="status" id="status">Zaloguj się, aby rozpocząć...</div>
-        <div class="prediction" id="prediction"></div>
+        
+        <div id="prediction-area">
+          <div class="prediction" id="prediction"></div>
+          <div class="feedback" id="feedback-container"></div>
+        </div>
+
         <div class="gallery-container">
           <div class="gallery-header">
             <h2>Zebrane próbki:</h2>
@@ -81,4 +85,3 @@
     <script src="script.js"></script>
   </body>
 </html>
-
