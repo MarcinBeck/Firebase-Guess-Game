@@ -11,8 +11,8 @@
   <body>
     <header>
       <div id="version-info">
-        <span>version: 1.5.0</span>
-        <span>28 sierpnia 2025, 11:55</span>
+        <span>version: 2.0.0</span>
+        <span>28 sierpnia 2025, 12:01</span>
         <a href="stats.html" class="stats-link">Statystyki</a>
       </div>
       
@@ -32,27 +32,29 @@
           <button id="stopBtn" disabled>Stop kamera</button>
         </div>
 
-        <div class="classes">
-          <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
-          <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
-          <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
-        </div>
+        <div class="symbol-section">
+            <div class="classes">
+              <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
+              <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
+              <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
+            </div>
 
-        <button id="predictBtn" disabled>Zgadnij symbol</button>
+            <button id="predictBtn" disabled>Zgadnij symbol</button>
 
-        <div class="status" id="status">Zaloguj się, aby rozpocząć...</div>
-        
-        <div id="prediction-area">
-          <div class="prediction" id="prediction"></div>
-          <div class="feedback" id="feedback-container"></div>
-        </div>
+            <div class="status" id="status">Ładowanie aplikacji...</div>
+            
+            <div id="prediction-area">
+              <div class="prediction" id="prediction"></div>
+              <div class="feedback" id="feedback-container"></div>
+            </div>
 
-        <div class="gallery-container">
-          <div class="gallery-header">
-            <h2>Zebrane próbki:</h2>
-            <button id="clearBtn" class="clear-button" disabled>Wyczyść dane</button>
-          </div>
-          <div class="gallery" id="gallery"></div>
+            <div class="gallery-container">
+              <div class="gallery-header">
+                <h2>Zebrane próbki:</h2>
+                <button id="clearBtn" class="clear-button" disabled>Wyczyść dane</button>
+              </div>
+              <div class="gallery" id="gallery"></div>
+            </div>
         </div>
       </div>
     </main>
