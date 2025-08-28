@@ -72,6 +72,7 @@ async function runDetectionLoop() {
   if (!video.paused && !video.ended) {
     // 1. Detekcja obiektów (kartki)
     const objects = await objectDetectorModel.detect(video);
+    console.log('Wykryte obiekty (surowe dane):', objects);
     
     // 2. Detekcja twarzy
     const faces = await blazeFaceModel.estimateFaces(video, false);
@@ -301,3 +302,4 @@ predictBtn.addEventListener('click', predict);
 
 // Start!
 main();
+
