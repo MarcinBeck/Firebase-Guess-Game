@@ -43,10 +43,24 @@
         </p>
     </div>
 
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+    <script>
+      // Inicjalizacja bezpośrednio w HTML, przed głównym skryptem
+      var firebaseConfig = {
+        apiKey: "AIzaSyDgnmnrBiqwFuFcEDpKsG_7hP2c8C4t30E",
+        authDomain: "guess-game-3a3b.firebaseapp.com",
+        databaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "guess-game-3a3b",
+        storageBucket: "guess-game-3a3b.appspot.com",
+        messagingSenderId: "1083984624029",
+        appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
     
-    <script defer src="stats.js"></script>
+    <script src="stats.js"></script>
 </body>
 </html>
