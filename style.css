@@ -20,16 +20,20 @@ header {
   padding: 2rem;
   border-bottom: 2px solid #1f2937;
   width: 100%;
-}
-
-h1 {
-  font-size: 3rem;
+  transition: opacity 0.5s ease-in-out;
 }
 
 main {
   display: flex;
   justify-content: center;
   padding: 2rem;
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Klasa do ukrywania treści */
+.content-hidden {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .app-container {
@@ -231,4 +235,45 @@ button:disabled {
 
 .stats-link:hover {
     text-decoration: underline;
+}
+
+/* DODANE STYLE DLA LOADERA */
+#loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0f172a;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#loader.fade-out {
+    opacity: 0;
+}
+
+#loader p {
+    font-size: 1.6rem;
+    color: #94a3b8;
+    margin-top: 2rem;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #334155;
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
