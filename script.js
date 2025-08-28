@@ -85,7 +85,6 @@ async function runDetectionLoop() {
         lastDetectedCardBox = card.bbox;
         classButtons.forEach(btn => btn.disabled = false);
         predictBtn.disabled = false;
-
         overlayCtx.strokeStyle = '#facc15';
         overlayCtx.lineWidth = 4;
         overlayCtx.strokeRect(card.bbox[0], card.bbox[1], card.bbox[2], card.bbox[3]);
@@ -102,7 +101,6 @@ async function runDetectionLoop() {
   }
 }
 
-
 function startCamera() {
   stopCamera();
   navigator.mediaDevices.getUserMedia({ video: true })
@@ -110,7 +108,6 @@ function startCamera() {
       currentStream = stream;
       video.srcObject = stream;
       video.play();
-
       const readyCheckInterval = setInterval(() => {
           if (video.readyState >= 3) {
               clearInterval(readyCheckInterval);
@@ -119,7 +116,6 @@ function startCamera() {
               runDetectionLoop();
           }
       }, 200);
-
       startBtn.disabled = true;
       stopBtn.disabled = false;
     }).catch(err => alert("Błąd kamery: ".concat(err.message)));
@@ -135,7 +131,6 @@ function stopCamera() {
     currentStream = null;
   }
   overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-
   startBtn.disabled = false;
   stopBtn.disabled = true;
   classButtons.forEach(btn => btn.disabled = true);
@@ -148,23 +143,17 @@ async function takeSnapshot(label) {
       return;
   }
   const [x, y, width, height] = lastDetectedCardBox;
-
   canvas.width = 150;
   canvas.height = 150;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, x, y, width, height, 0, 0, 150, 150);
-
   const img = document.createElement('img');
   img.src = canvas.toDataURL('image/png');
   gallery.appendChild(img);
-
   const logits = net.infer(canvas, true);
   classifier.addExample(logits, label);
-  
   await saveModel();
   updateStatus();
-  
-  // ZMIANA: Zapisz informację o dodanej próbce do statystyk
   logTrainingSample(label, 'manual');
 }
 
@@ -174,13 +163,11 @@ async function predict() {
     predictionEl.textContent = "Najpierw dodaj próbki!";
     return;
   }
-
   const [x, y, width, height] = lastDetectedCardBox;
   const ctx = canvas.getContext('2d');
   canvas.width = 150;
   canvas.height = 150;
   ctx.drawImage(video, x, y, width, height, 0, 0, 150, 150);
-
   const logits = net.infer(canvas, true);
   const result = await classifier.predictClass(logits);
   predictionEl.textContent = `Wynik: ${result.label} (pewność ${(result.confidences[result.label] * 100).toFixed(1)}%)`;
@@ -234,9 +221,13 @@ async function clearData() {
     } catch (error) { console.error("Błąd podczas czyszczenia danych:", error); }
 }
 
-// NOWA FUNKCJA: Zapisuje pojedynczą próbkę do statystyk
+// ZMIANA: Dodano logi diagnostyczne
 function logTrainingSample(symbol, source) {
-    if (!currentUser) return;
+    console.log("--> Wywołano logTrainingSample"); // LOG 1
+    if (!currentUser) {
+        console.error("Błąd statystyk: Użytkownik niezalogowany w momencie logowania próbki."); // LOG 2
+        return;
+    }
 
     const sampleData = {
         timestamp: firebase.database.ServerValue.TIMESTAMP,
@@ -245,11 +236,12 @@ function logTrainingSample(symbol, source) {
     };
 
     const samplesRef = database.ref(`training_samples/${currentUser.uid}`);
-    samplesRef.push(sampleData)
-        .then(() => console.log(`Zapisano próbkę w statystykach: ${symbol}`))
-        .catch(error => console.error("Błąd zapisu próbki do statystyk:", error));
-}
+    console.log("Zapisuję do ścieżki w Firebase:", samplesRef.toString()); // LOG 3
 
+    samplesRef.push(sampleData)
+        .then(() => console.log(`--> SUKCES: Zapisano próbkę w statystykach: ${symbol}`)) // LOG 4
+        .catch(error => console.error("--> BŁĄD ZAPISU DO STATYSTYK:", error)); // LOG 5
+}
 
 // --- ZARZĄDZANIE STANEM LOGOWANIA ---
 function handleLoggedOutState() {
@@ -268,7 +260,6 @@ async function handleLoggedInState(user) {
   currentUser = user;
   authContainer.innerHTML = `<span class="welcome-message">Witaj, Gościu!</span><button id="logout-btn" class="logout-btn">Wyloguj</button>`;
   document.getElementById('logout-btn').addEventListener('click', () => firebase.auth().signOut());
-  
   clearBtn.disabled = false;
   status.textContent = "Wczytywanie zapisanego modelu...";
   await loadModelFromFirebase();
@@ -278,7 +269,6 @@ async function main() {
   const classificationModelsLoaded = await loadClassificationModels();
   const faceDetectorModelLoaded = await loadFaceDetectorModel();
   const objectDetectorModelLoaded = await loadObjectDetectorModel();
-
   if (classificationModelsLoaded && faceDetectorModelLoaded && objectDetectorModelLoaded) {
     status.textContent = "Wszystkie modele gotowe. Zaloguj się, aby rozpocząć.";
     firebase.auth().onAuthStateChanged(user => {
