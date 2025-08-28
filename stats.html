@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+    <link rel="stylesheet" href="style.css">
+    <title>Statystyki - AI</title>
+    <style>
+        /* Dodatkowe style tylko dla tej strony */
+        .stats-container { max-width: 600px; margin: 2rem auto; text-align: left; font-size: 1.8rem; line-height: 1.8; }
+        .stats-container h1 { text-align: center; margin-bottom: 2rem; }
+        .stats-container a { color: #38bdf8; }
+        .stats-container span { font-weight: bold; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="stats-container">
+        <h1>Statystyki</h1>
+        <p>Łączna liczba dodanych próbek: <span id="total-samples">Ładowanie...</span></p>
+        <p>Łączna liczba prób odgadnięcia: <span id="total-predictions">Ładowanie...</span></p>
+        <p>Skuteczność modelu: <span id="model-accuracy">Ładowanie...</span></p>
+
+        <p style="margin-top: 4rem; text-align: center;">
+            <a href="index.html">Wróć do aplikacji</a>
+        </p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+    <script>
+        // Ta sama konfiguracja, co w pliku głównym
+        var firebaseConfig = {
+            apiKey: "AIzaSyDgnmnrBiqwFuFcEDpKsG_7hP2c8C4t30E",
+            authDomain: "guess-game-35a3b.firebaseapp.com",
+            databaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "guess-game-35a3b",
+            storageBucket: "guess-game-35a3b.appspot.com",
+            messagingSenderId: "1083984624029",
+            appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+    
+    <script src="stats.js"></script>
+</body>
+</html>
