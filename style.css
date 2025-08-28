@@ -39,18 +39,11 @@ main {
   gap: 1.5rem;
 }
 
-/* POPRAWIONE STYLE DLA WIDEO I PŁÓTNA */
+/* KLUCZOWA POPRAWKA: Te dwa bloki stylów muszą istnieć */
 .video-container {
   position: relative;
   width: 100%;
   max-width: 500px;
-}
-
-video {
-  width: 100%;
-  border: 2px solid #1f2937;
-  border-radius: 12px;
-  background: #000;
 }
 
 #overlay {
@@ -60,6 +53,12 @@ video {
   z-index: 10;
 }
 
+video {
+  width: 100%;
+  border: 2px solid #1f2937;
+  border-radius: 12px;
+  background: #000;
+}
 
 button {
   background: #1f2937;
