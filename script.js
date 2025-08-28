@@ -22,13 +22,13 @@ let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 let blazeFaceModel;
-let faceDetectionTimeoutId = null;
+let objectDetectorModel;
+let detectionIntervalId = null;
 
 // --- FUNKCJE AI i KAMERY ---
 
 const tensorToJSON = (tensor) => Array.from(tensor.dataSync());
 
-// PRZYWRÓCONA FUNKCJA
 async function loadClassificationModels() {
   status.textContent = "Ładowanie modelu MobileNet...";
   try {
@@ -43,7 +43,6 @@ async function loadClassificationModels() {
 }
 
 async function loadFaceDetectorModel() {
-  console.log("Ładowanie modelu BlazeFace...");
   status.textContent = "Ładowanie modelu BlazeFace...";
   try {
     blazeFaceModel = await blazeface.load();
@@ -51,29 +50,59 @@ async function loadFaceDetectorModel() {
     return true;
   } catch (e) {
     console.error("Błąd ładowania modelu BlazeFace:", e);
+    status.textContent = "Błąd ładowania modelu detekcji twarzy.";
     return false;
   }
 }
 
-async function detectFacesLoop() {
-  if (blazeFaceModel && !video.paused && !video.ended) {
-    const predictions = await blazeFaceModel.estimateFaces(video, false);
+async function loadObjectDetectorModel() {
+  status.textContent = "Ładowanie modelu COCO-SSD...";
+  try {
+    objectDetectorModel = await cocoSsd.load();
+    console.log("Model COCO-SSD załadowany.");
+    return true;
+  } catch (e) {
+    console.error("Błąd ładowania modelu COCO-SSD:", e);
+    status.textContent = "Błąd ładowania modelu detekcji obiektów.";
+    return false;
+  }
+}
+
+async function runDetectionLoop() {
+  if (!video.paused && !video.ended) {
+    // 1. Detekcja obiektów (kartki)
+    const objects = await objectDetectorModel.detect(video);
     
+    // 2. Detekcja twarzy
+    const faces = await blazeFaceModel.estimateFaces(video, false);
+    
+    // 3. Rysowanie
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
     
-    predictions.forEach(prediction => {
-        const start = prediction.topLeft;
-        const end = prediction.bottomRight;
+    faces.forEach(face => {
+        const start = face.topLeft;
+        const end = face.bottomRight;
         const size = [end[0] - start[0], end[1] - start[1]];
-
         overlayCtx.strokeStyle = '#38bdf8';
         overlayCtx.lineWidth = 4;
         overlayCtx.strokeRect(start[0], start[1], size[0], size[1]);
     });
 
-    faceDetectionTimeoutId = setTimeout(detectFacesLoop, 200);
+    objects.forEach(object => {
+      if (object.class === 'book') {
+        overlayCtx.strokeStyle = '#facc15';
+        overlayCtx.lineWidth = 4;
+        overlayCtx.strokeRect(object.bbox[0], object.bbox[1], object.bbox[2], object.bbox[3]);
+        overlayCtx.fillStyle = '#facc15';
+        overlayCtx.font = '16px sans-serif';
+        overlayCtx.fillText('Kartka?', object.bbox[0] + 5, object.bbox[1] + 20);
+      }
+    });
+
+    detectionIntervalId = setTimeout(runDetectionLoop, 400);
   }
 }
+
 
 function startCamera() {
   stopCamera();
@@ -88,22 +117,21 @@ function startCamera() {
               clearInterval(readyCheckInterval);
               overlay.width = video.videoWidth;
               overlay.height = video.videoHeight;
-              detectFacesLoop();
+              runDetectionLoop();
           }
       }, 200);
 
       startBtn.disabled = true;
       stopBtn.disabled = false;
-      // PRZYWRÓCONE WŁĄCZANIE PRZYCISKÓW
       classButtons.forEach(btn => btn.disabled = false);
       predictBtn.disabled = false;
     }).catch(err => alert("Błąd kamery: ".concat(err.message)));
 }
 
 function stopCamera() {
-  if (faceDetectionTimeoutId) {
-    clearTimeout(faceDetectionTimeoutId);
-    faceDetectionTimeoutId = null;
+  if (detectionIntervalId) {
+    clearTimeout(detectionIntervalId);
+    detectionIntervalId = null;
   }
   if (currentStream) {
     currentStream.getTracks().forEach(track => track.stop());
@@ -113,12 +141,10 @@ function stopCamera() {
 
   startBtn.disabled = false;
   stopBtn.disabled = true;
-  // PRZYWRÓCONE WYŁĄCZANIE PRZYCISKÓW
   classButtons.forEach(btn => btn.disabled = true);
   predictBtn.disabled = true;
 }
 
-// PRZYWRÓCONE FUNKCJE
 async function takeSnapshot(label) {
   if (!net || !classifier) return;
   const ctx = canvas.getContext('2d');
@@ -241,32 +267,28 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
-// ZMIANA: Inicjalizacja ładuje teraz WSZYSTKIE modele
 async function main() {
-  console.log("Start aplikacji...");
-  const faceDetectorModelLoaded = await loadFaceDetectorModel();
   const classificationModelsLoaded = await loadClassificationModels();
+  const faceDetectorModelLoaded = await loadFaceDetectorModel();
+  const objectDetectorModelLoaded = await loadObjectDetectorModel();
 
-  if (classificationModelsLoaded && faceDetectorModelLoaded) {
-    console.log("Wszystkie modele gotowe. Ustawiam nasłuchiwanie na stan logowania...");
+  if (classificationModelsLoaded && faceDetectorModelLoaded && objectDetectorModelLoaded) {
+    status.textContent = "Wszystkie modele gotowe. Zaloguj się, aby rozpocząć.";
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        console.log("Użytkownik zalogowany.");
         handleLoggedInState(user);
       } else {
-        console.log("Użytkownik wylogowany.");
         handleLoggedOutState();
       }
     });
   } else {
-      alert("Błąd krytyczny: Nie udało się załadować wszystkich modeli AI.");
+      status.textContent = "Błąd krytyczny. Nie udało się załadować wszystkich modeli AI.";
   }
 }
 
-// PRZYWRÓCONE EVENT LISTENERS
+// Event Listeners
 const againBtn = document.getElementById('againBtn');
-if(againBtn) {
-    // This button does not have a function in this app, but we prevent errors
+if (againBtn) {
     againBtn.addEventListener('click', () => console.log("'Jeszcze raz' clicked"));
 }
 startBtn.addEventListener('click', startCamera);
