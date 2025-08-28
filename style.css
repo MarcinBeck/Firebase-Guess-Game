@@ -89,6 +89,15 @@ button:disabled {
   justify-content: center;
 }
 
+/* Przywracamy widoczność sekcji symboli */
+.symbol-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+}
+
 .status {
   font-size: 1.4rem;
   color: #94a3b8;
@@ -176,7 +185,6 @@ button:disabled {
   color: #aaa;
 }
 
-/* DODANE STYLE DLA WERSJI */
 #version-info {
   position: absolute;
   top: 2rem;
