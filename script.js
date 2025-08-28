@@ -135,7 +135,6 @@ window.addEventListener('DOMContentLoaded', () => {
     async function handleIncorrectPrediction(predictedSymbol, correctSymbol, logits) {
         logPredictionAttempt(predictedSymbol, false, correctSymbol);
         classifier.addExample(logits, correctSymbol);
-        // ZMIANA: Zapisujemy tylko nową próbkę, a nie cały model
         await logTrainingSample(correctSymbol, 'correction', logits);
         updateStatus();
         predictionEl.textContent = `Dziękuję! Zapamiętam, że to był ${correctSymbol}.`;
@@ -186,7 +185,6 @@ window.addEventListener('DOMContentLoaded', () => {
       const logits = net.infer(canvas, true);
       classifier.addExample(logits, label);
       updateStatus();
-      // ZMIANA: Zapisujemy tylko nową próbkę, a nie cały model
       await logTrainingSample(label, 'manual', logits);
     }
     async function predict() {
@@ -216,10 +214,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LOGIKA FIREBASE ---
-    
-    // USUNIĘTO: Funkcja saveModel() jest już niepotrzebna
-    
-    // ZMIANA: Ta funkcja teraz odbudowuje model z pojedynczych próbek
     async function loadModelFromFirebase() {
       if (!currentUser || !classifier) return;
       classifier.clearAllClasses();
@@ -230,14 +224,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
       if (allSamples) {
         status.textContent = 'Odtwarzanie modelu z zapisanych próbek...';
-        const sampleCount = Object.keys(allSamples).length;
         let processedCount = 0;
-
         for (const key of Object.keys(allSamples)) {
             const sample = allSamples[key];
-            const tensor = tf.tensor(sample.tensor);
-            classifier.addExample(tensor, sample.symbol);
-            processedCount++;
+            if (sample.tensor) { // Zabezpieczenie na wypadek starych danych bez tensora
+                // KLUCZOWA POPRAWKA: Używamy tf.tensor2d z konkretnym kształtem
+                const tensor = tf.tensor2d(sample.tensor, [1, 1024]);
+                classifier.addExample(tensor, sample.symbol);
+                processedCount++;
+            }
         }
         console.log(`Odtworzono model z ${processedCount} próbek.`);
         gallery.innerHTML = `<p class="gallery-info">Model wczytany z ${processedCount} próbek. Galeria jest pusta, ponieważ obrazki nie są zapisywane.</p>`;
@@ -251,7 +246,6 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki?")) return;
         try {
           if (currentUser) {
-            // ZMIANA: Usuwamy tylko statystyki, nie ma już gałęzi /models/
             await database.ref(`training_samples/${currentUser.uid}`).remove();
             await database.ref(`prediction_attempts/${currentUser.uid}`).remove();
           }
@@ -262,14 +256,13 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Błąd podczas czyszczenia danych:", error); }
     }
 
-    // ZMIANA: Ta funkcja przejmuje odpowiedzialność za zapis danych AI
     function logTrainingSample(symbol, source, logits) {
         if (!currentUser || !logits) return;
         const sampleData = {
             timestamp: firebase.database.ServerValue.TIMESTAMP,
             symbol: symbol,
             source: source,
-            tensor: tensorToJSON(logits) // Zapisujemy dane tensora
+            tensor: tensorToJSON(logits)
         };
         database.ref(`training_samples/${currentUser.uid}`).push(sampleData);
     }
