@@ -15,38 +15,26 @@
         .summary { border: 1px solid #1f2937; padding: 2rem; border-radius: 8px; margin-bottom: 3rem; }
         .summary p { margin-bottom: 1rem; }
         .summary .detail { font-size: 1.4rem; color: #94a3b8; padding-left: 2rem; }
-        .charts-container { display: block; margin-bottom: 4rem;}
+        .charts-container { display: block; }
         .chart-box { background-color: #1e293b; padding: 2rem; border-radius: 8px; }
         .chart-box h2 { font-size: 1.8rem; margin-bottom: 1.5rem; text-align: center; color: #94a3b8;}
-        /* NOWE STYLE DLA TABELI */
-        .history-table { width: 100%; border-collapse: collapse; font-size: 1.4rem; }
-        .history-table th, .history-table td { padding: 1rem; border-bottom: 1px solid #334155; text-align: left; }
-        .history-table th { color: #94a3b8; }
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 2rem; margin-top: 2rem; font-size: 1.6rem; }
-        .pagination button { font-size: 1.4rem; padding: 0.8rem 1.2rem; }
     </style>
 </head>
 <body>
     <div class="stats-container">
-        <div class="history-container">
-            <h2>Historia zdarzeń</h2>
-            <table class="history-table">
-                <thead>
-                    <tr>
-                        <th>Lp.</th>
-                        <th>Data i godzina</th>
-                        <th>Rodzaj</th>
-                        <th>Kształt</th>
-                        <th>Korekta</th>
-                    </tr>
-                </thead>
-                <tbody id="history-table-body">
-                    </tbody>
-            </table>
-            <div class="pagination">
-                <button id="prev-page" disabled>Poprzednia</button>
-                <span id="page-info">Strona 1 / 1</span>
-                <button id="next-page" disabled>Następna</button>
+        <h1>Statystyki</h1>
+        <div class="summary">
+            <p>Łączna liczba dodanych próbek: <span id="total-samples">Ładowanie...</span></p>
+            <p class="detail">Dodane ręcznie: <span id="manual-samples">...</span></p>
+            <p class="detail">Dodane z korekt: <span id="correction-samples">...</span></p>
+            <p>Łączna liczba prób odgadnięcia: <span id="total-predictions">Ładowanie...</span></p>
+            <p>Ogólna skuteczność modelu: <span id="model-accuracy">Ładowanie...</span></p>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-box">
+                <h2>Skuteczność a liczba próbek</h2>
+                <canvas id="accuracyChart"></canvas>
             </div>
         </div>
 
@@ -55,6 +43,10 @@
         </p>
     </div>
 
-    <script src="stats.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    
+    <script defer src="stats.js"></script>
 </body>
 </html>
