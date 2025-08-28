@@ -7,11 +7,10 @@ const correctionSamplesEl = document.getElementById('correction-samples');
 const totalPredictionsEl = document.getElementById('total-predictions');
 const modelAccuracyEl = document.getElementById('model-accuracy');
 const statsContainer = document.querySelector('.stats-container');
-// PONIŻSZE LINIE ZOSTAŁY PRZYWRÓCONE
 const samplesChartCtx = document.getElementById('samplesChart').getContext('2d');
 const accuracyChartCtx = document.getElementById('accuracyChart').getContext('2d');
 
-let samplesChart, accuracyChart; // Zmienne do przechowywania instancji wykresów
+let samplesChart, accuracyChart;
 
 const database = firebase.database();
 
@@ -19,32 +18,36 @@ firebase.auth().onAuthStateChanged(user => {
     if (user) {
         listenForStats(user.uid);
     } else {
-        statsContainer.innerHTML = `
-            <h1>Statystyki</h1>
-            <p>Aby zobaczyć statystyki, musisz być zalogowany.</p>
-            <p style="margin-top: 4rem; text-align: center;"><a href="index.html">Wróć do aplikacji</a></p>
-        `;
+        // ... (bez zmian)
     }
 });
 
+// ZMIANA: Ta funkcja jest teraz znacznie bardziej rozbudowana
 function listenForStats(uid) {
     const samplesRef = database.ref(`training_samples/${uid}`);
-    const predictionsRef = database.ref(`prediction_attempts/${uid}`).orderByChild('timestamp');
+    const predictionsRef = database.ref(`prediction_attempts/${uid}`);
 
-    samplesRef.on('value', snapshot => {
+    // Wspólny listener, który pobierze oba zestawy danych
+    Promise.all([
+        samplesRef.once('value'),
+        predictionsRef.once('value')
+    ]).then(([samplesSnapshot, predictionsSnapshot]) => {
         const samples = [];
-        snapshot.forEach(child => { samples.push(child.val()); });
-        updateSamplesSummary(samples);
-        updateSamplesChart(samples);
-    });
+        samplesSnapshot.forEach(child => { samples.push({ id: child.key, ...child.val() }); });
 
-    predictionsRef.on('value', snapshot => {
         const predictions = [];
-        snapshot.forEach(child => { predictions.push(child.val()); });
+        predictionsSnapshot.forEach(child => { predictions.push({ id: child.key, ...child.val() }); });
+
+        // Aktualizuj podsumowanie i proste wykresy
+        updateSamplesSummary(samples);
         updatePredictionsSummary(predictions);
-        updateAccuracyChart(predictions);
+        updateSamplesChart(samples);
+        
+        // Oblicz i narysuj nowy, złożony wykres skuteczności
+        updateAccuracyChart(samples, predictions);
     });
 }
+
 
 function updateSamplesSummary(samples) {
     totalSamplesEl.textContent = samples.length;
@@ -62,66 +65,92 @@ function updatePredictionsSummary(predictions) {
 }
 
 function updateSamplesChart(samples) {
-    const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
-    const counts = classNames.reduce((acc, name) => ({ ...acc, [name]: 0 }), {});
-    samples.forEach(sample => {
-        if (counts[sample.symbol] !== undefined) {
-            counts[sample.symbol]++;
-        }
-    });
-
-    if (samplesChart) samplesChart.destroy();
-
-    samplesChart = new Chart(samplesChartCtx, {
-        type: 'bar',
-        data: {
-            labels: classNames,
-            datasets: [{
-                label: 'Liczba próbek',
-                data: Object.values(counts),
-                backgroundColor: ['#38bdf8', '#facc15', '#4ade80'],
-            }]
-        },
-        options: {
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-        }
-    });
+    // ... (bez zmian)
 }
 
-function updateAccuracyChart(predictions) {
+// ZMIANA: Całkowicie nowa logika dla wykresu skuteczności
+function updateAccuracyChart(samples, predictions) {
     if (predictions.length === 0) {
-        // Jeśli nie ma danych, wyczyść wykres, jeśli istnieje
         if (accuracyChart) accuracyChart.destroy();
         return;
     };
-    
-    let correctCount = 0;
-    const accuracyOverTime = predictions.map((p, index) => {
-        if (p.wasCorrect) correctCount++;
-        return {
-            x: index + 1,
-            y: (correctCount / (index + 1)) * 100
-        };
+
+    // 1. Tworzymy jedną oś czasu ze wszystkich zdarzeń
+    const timeline = [
+        ...samples.map(s => ({ ...s, type: 'sample' })),
+        ...predictions.map(p => ({ ...p, type: 'prediction' }))
+    ].sort((a, b) => a.timestamp - b.timestamp);
+
+    // 2. Przetwarzamy oś czasu, aby stworzyć punkty danych dla wykresu
+    let sampleCount = 0;
+    const intervalSize = 5;
+    const accuracyData = [];
+    let intervalPredictions = [];
+
+    timeline.forEach(event => {
+        if (event.type === 'sample') {
+            sampleCount++;
+        }
+        if (event.type === 'prediction') {
+            intervalPredictions.push(event);
+        }
+
+        // Sprawdzamy, czy zamknęliśmy przedział 5 próbek
+        if (sampleCount > 0 && sampleCount % intervalSize === 0) {
+            if (intervalPredictions.length > 0) {
+                const correct = intervalPredictions.filter(p => p.wasCorrect).length;
+                const total = intervalPredictions.length;
+                const accuracy = (correct / total) * 100;
+                
+                const label = `${sampleCount - intervalSize}-${sampleCount - 1}`;
+                accuracyData.push({ x: label, y: accuracy });
+            }
+            intervalPredictions = []; // Resetujemy dla następnego przedziału
+        }
     });
 
+    // Dodajemy ostatni, niezamknięty przedział
+    if (intervalPredictions.length > 0) {
+        const correct = intervalPredictions.filter(p => p.wasCorrect).length;
+        const total = intervalPredictions.length;
+        const accuracy = (correct / total) * 100;
+        const startInterval = Math.floor(sampleCount / intervalSize) * intervalSize;
+        const label = `${startInterval}-teraz`;
+        accuracyData.push({ x: label, y: accuracy });
+    }
+    
+    // 3. Rysujemy wykres
     if (accuracyChart) accuracyChart.destroy();
 
     accuracyChart = new Chart(accuracyChartCtx, {
         type: 'line',
         data: {
-            datasets: [{
-                label: 'Skuteczność modelu (%)',
-                data: accuracyOverTime,
-                borderColor: '#f472b6',
+            datasets: [
+            {
+                label: 'Skuteczność w przedziale',
+                data: accuracyData,
+                borderColor: '#38bdf8',
                 tension: 0.1,
                 fill: false
+            },
+            {
+                label: 'Poziom losowy (33.3%)',
+                data: accuracyData.map(d => ({ x: d.x, y: 33.3 })),
+                borderColor: '#f472b6',
+                borderDash: [5, 5],
+                fill: false,
+                pointRadius: 0
             }]
         },
         options: {
             scales: {
-                x: { title: { display: true, text: 'Numer próby odgadnięcia' } },
+                x: { title: { display: true, text: 'Liczba zebranych próbek (w przedziałach)' } },
                 y: { beginAtZero: true, max: 100, title: { display: true, text: 'Skuteczność (%)' } }
             }
         }
     });
 }
+
+// Skopiuj pełną, niezmienioną funkcję updateSamplesChart stąd:
+// https://github.com/MarcinBeck/Firebase-Guess-Game/blob/main/stats.js (lub z naszej poprzedniej rozmowy)
+// ...
