@@ -24,6 +24,7 @@ const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 let blazeFaceModel;
 let objectDetectorModel;
 let detectionIntervalId = null;
+let lastDetectedCardBox = null; // <-- DODAJ TĘ LINIĘ
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -307,5 +308,6 @@ predictBtn.addEventListener('click', predict);
 
 // Start!
 main();
+
 
 
