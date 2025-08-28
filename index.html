@@ -11,8 +11,8 @@
   <body>
     <header>
       <div id="version-info">
-        <span>version: 1.1.0</span>
-        <span>28 sierpnia 2025, 09:45</span>
+        <span>version: 1.2.0</span>
+        <span>28 sierpnia 2025, 09:50</span>
       </div>
       
       <h1>AI - Rozpoznawanie Symboli</h1>
@@ -31,7 +31,7 @@
           <button id="stopBtn" disabled>Stop kamera</button>
         </div>
 
-        <div class="symbol-section" style="display: none;">
+        <div class="symbol-section">
             <div class="classes">
               <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
               <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
@@ -60,6 +60,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
 
     <script>
@@ -79,4 +81,3 @@
     <script src="script.js"></script>
   </body>
 </html>
-
