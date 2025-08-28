@@ -9,45 +9,45 @@
     <title>AI - Rozpoznawanie Symboli</title>
   </head>
   <body>
-    <header>
+
+    <div id="loader">
+      <div class="spinner"></div>
+      <p id="loader-status">Inicjalizacja aplikacji...</p>
+    </div>
+
+    <header class="content-hidden">
       <div id="version-info">
-        <span>version: 2.0.1</span>
-        <span>28 sierpnia 2025, 12:01</span>
+        <span>version: 2.1.0</span>
+        <span>28 sierpnia 2025, 12:19</span>
         <a href="stats.html" class="stats-link">Statystyki</a>
       </div>
       
       <h1>AI - Rozpoznawanie Symboli</h1>
       <div id="auth-container"></div>
     </header>
-    <main>
+
+    <main class="content-hidden">
       <div class="app-container">
-        
         <div class="video-container">
           <video id="video" autoplay playsinline></video>
           <canvas id="overlay"></canvas>
         </div>
-        
         <div class="controls">
           <button id="startBtn">Start kamera</button>
           <button id="stopBtn" disabled>Stop kamera</button>
         </div>
-
         <div class="symbol-section">
             <div class="classes">
               <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
               <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
               <button data-class="TRÓJKĄT" disabled>Dodaj TRÓJKĄT</button>
             </div>
-
             <button id="predictBtn" disabled>Zgadnij symbol</button>
-
-            <div class="status" id="status">Ładowanie aplikacji...</div>
-            
+            <div class="status" id="status"></div>
             <div id="prediction-area">
               <div class="prediction" id="prediction"></div>
               <div class="feedback" id="feedback-container"></div>
             </div>
-
             <div class="gallery-container">
               <div class="gallery-header">
                 <h2>Zebrane próbki:</h2>
@@ -64,7 +64,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
@@ -87,4 +86,3 @@
     <script src="script.js"></script>
   </body>
 </html>
-
