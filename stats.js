@@ -2,10 +2,15 @@
 
 // --- ELEMENTY UI ---
 const totalSamplesEl = document.getElementById('total-samples');
-const manualSamplesEl = document.getElementById('manual-samples'); // Nowy
-const correctionSamplesEl = document.getElementById('correction-samples'); // Nowy
+const manualSamplesEl = document.getElementById('manual-samples');
+const correctionSamplesEl = document.getElementById('correction-samples');
 const totalPredictionsEl = document.getElementById('total-predictions');
 const modelAccuracyEl = document.getElementById('model-accuracy');
+const statsContainer = document.querySelector('.stats-container');
+// PONIŻSZE LINIE ZOSTAŁY PRZYWRÓCONE
+const samplesChartCtx = document.getElementById('samplesChart').getContext('2d');
+const accuracyChartCtx = document.getElementById('accuracyChart').getContext('2d');
+
 let samplesChart, accuracyChart; // Zmienne do przechowywania instancji wykresów
 
 const database = firebase.database();
@@ -43,8 +48,6 @@ function listenForStats(uid) {
 
 function updateSamplesSummary(samples) {
     totalSamplesEl.textContent = samples.length;
-
-    // NOWA LOGIKA: Zliczanie próbek według źródła
     const manualSamples = samples.filter(s => s.source === 'manual').length;
     const correctionSamples = samples.filter(s => s.source === 'correction').length;
     manualSamplesEl.textContent = manualSamples;
@@ -67,7 +70,7 @@ function updateSamplesChart(samples) {
         }
     });
 
-    if (samplesChart) samplesChart.destroy(); // Zniszcz stary wykres przed narysowaniem nowego
+    if (samplesChart) samplesChart.destroy();
 
     samplesChart = new Chart(samplesChartCtx, {
         type: 'bar',
@@ -86,7 +89,11 @@ function updateSamplesChart(samples) {
 }
 
 function updateAccuracyChart(predictions) {
-    if (predictions.length === 0) return;
+    if (predictions.length === 0) {
+        // Jeśli nie ma danych, wyczyść wykres, jeśli istnieje
+        if (accuracyChart) accuracyChart.destroy();
+        return;
+    };
     
     let correctCount = 0;
     const accuracyOverTime = predictions.map((p, index) => {
