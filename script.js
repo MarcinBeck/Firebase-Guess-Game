@@ -22,9 +22,8 @@ let classifier;
 let net;
 const classNames = ["KOŁO", "KWADRAT", "TRÓJKĄT"];
 let blazeFaceModel;
-let objectDetectorModel;
 let detectionIntervalId = null;
-let lastDetectedCardBox = null;
+let lastDetectedFace = null;
 
 // --- FUNKCJE AI i KAMERY ---
 
@@ -53,51 +52,30 @@ async function loadFaceDetectorModel() {
   }
 }
 
-async function loadObjectDetectorModel() {
-  status.textContent = "Ładowanie modelu COCO-SSD...";
-  try {
-    objectDetectorModel = await cocoSsd.load();
-    return true;
-  } catch (e) {
-    status.textContent = "Błąd ładowania modelu detekcji obiektów.";
-    return false;
-  }
-}
-
 async function runDetectionLoop() {
-  if (!video.paused && !video.ended) {
-    const objects = await objectDetectorModel.detect(video);
+  if (blazeFaceModel && !video.paused && !video.ended) {
     const faces = await blazeFaceModel.estimateFaces(video, false);
     
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
     
-    faces.forEach(face => {
-        const start = face.topLeft;
-        const end = face.bottomRight;
-        const size = [end[0] - start[0], end[1] - start[1]];
-        overlayCtx.strokeStyle = '#38bdf8';
-        overlayCtx.lineWidth = 4;
-        overlayCtx.strokeRect(start[0], start[1], size[0], size[1]);
-    });
+    if (faces.length > 0) {
+      lastDetectedFace = faces[0];
+      classButtons.forEach(btn => btn.disabled = false);
+      predictBtn.disabled = false;
 
-    const card = objects.find(object => ['book', 'cell phone', 'remote'].includes(object.class));
-    if (card) {
-        lastDetectedCardBox = card.bbox;
-        classButtons.forEach(btn => btn.disabled = false);
-        predictBtn.disabled = false;
-        overlayCtx.strokeStyle = '#facc15';
-        overlayCtx.lineWidth = 4;
-        overlayCtx.strokeRect(card.bbox[0], card.bbox[1], card.bbox[2], card.bbox[3]);
-        overlayCtx.fillStyle = '#facc15';
-        overlayCtx.font = '16px sans-serif';
-        overlayCtx.fillText(`Wykryto: ${card.class}`, card.bbox[0] + 5, card.bbox[1] + 20);
+      const start = lastDetectedFace.topLeft;
+      const end = lastDetectedFace.bottomRight;
+      const size = [end[0] - start[0], end[1] - start[1]];
+      overlayCtx.strokeStyle = '#38bdf8';
+      overlayCtx.lineWidth = 4;
+      overlayCtx.strokeRect(start[0], start[1], size[0], size[1]);
     } else {
-        lastDetectedCardBox = null;
-        classButtons.forEach(btn => btn.disabled = true);
-        predictBtn.disabled = true;
+      lastDetectedFace = null;
+      classButtons.forEach(btn => btn.disabled = true);
+      predictBtn.disabled = true;
     }
 
-    detectionIntervalId = setTimeout(runDetectionLoop, 400);
+    detectionIntervalId = setTimeout(runDetectionLoop, 200);
   }
 }
 
@@ -108,6 +86,7 @@ function startCamera() {
       currentStream = stream;
       video.srcObject = stream;
       video.play();
+
       const readyCheckInterval = setInterval(() => {
           if (video.readyState >= 3) {
               clearInterval(readyCheckInterval);
@@ -116,6 +95,7 @@ function startCamera() {
               runDetectionLoop();
           }
       }, 200);
+
       startBtn.disabled = true;
       stopBtn.disabled = false;
     }).catch(err => alert("Błąd kamery: ".concat(err.message)));
@@ -138,18 +118,25 @@ function stopCamera() {
 }
 
 async function takeSnapshot(label) {
-  if (!net || !classifier || !lastDetectedCardBox) {
-      alert("Najpierw pokaż kartkę do kamery!");
+  if (!net || !classifier || !lastDetectedFace) {
+      alert("Najpierw pokaż twarz do kamery!");
       return;
   }
-  const [x, y, width, height] = lastDetectedCardBox;
+  const faceBox = lastDetectedFace;
+  const cropStartX = faceBox.topLeft[0];
+  const cropStartY = faceBox.bottomRight[1];
+  const cropWidth = (faceBox.bottomRight[0] - faceBox.topLeft[0]);
+  const cropHeight = cropWidth;
+
+  const ctx = canvas.getContext('2d');
   canvas.width = 150;
   canvas.height = 150;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, x, y, width, height, 0, 0, 150, 150);
+  ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 150, 150);
+
   const img = document.createElement('img');
   img.src = canvas.toDataURL('image/png');
   gallery.appendChild(img);
+
   const logits = net.infer(canvas, true);
   classifier.addExample(logits, label);
   await saveModel();
@@ -158,16 +145,22 @@ async function takeSnapshot(label) {
 }
 
 async function predict() {
-  if (!net || !classifier || !lastDetectedCardBox) return;
+  if (!net || !classifier || !lastDetectedFace) return;
   if (classifier.getNumClasses() === 0) {
     predictionEl.textContent = "Najpierw dodaj próbki!";
     return;
   }
-  const [x, y, width, height] = lastDetectedCardBox;
+  const faceBox = lastDetectedFace;
+  const cropStartX = faceBox.topLeft[0];
+  const cropStartY = faceBox.bottomRight[1];
+  const cropWidth = (faceBox.bottomRight[0] - faceBox.topLeft[0]);
+  const cropHeight = cropWidth;
+
   const ctx = canvas.getContext('2d');
   canvas.width = 150;
   canvas.height = 150;
-  ctx.drawImage(video, x, y, width, height, 0, 0, 150, 150);
+  ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 150, 150);
+
   const logits = net.infer(canvas, true);
   const result = await classifier.predictClass(logits);
   predictionEl.textContent = `Wynik: ${result.label} (pewność ${(result.confidences[result.label] * 100).toFixed(1)}%)`;
@@ -213,7 +206,11 @@ async function loadModelFromFirebase() {
 async function clearData() {
     if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki?")) return;
     try {
-      if (currentUser) { await database.ref(`models/${currentUser.uid}`).remove(); }
+      // Usuwamy zarówno model jak i statystyki próbek
+      if (currentUser) {
+        await database.ref(`models/${currentUser.uid}`).remove();
+        await database.ref(`training_samples/${currentUser.uid}`).remove();
+      }
       if (classifier) classifier.clearAllClasses();
       gallery.innerHTML = "";
       predictionEl.textContent = "Wyczyszczono dane.";
@@ -221,26 +218,15 @@ async function clearData() {
     } catch (error) { console.error("Błąd podczas czyszczenia danych:", error); }
 }
 
-// ZMIANA: Dodano logi diagnostyczne
+// Funkcja zapisująca pojedynczą próbkę do statystyk
 function logTrainingSample(symbol, source) {
-    console.log("--> Wywołano logTrainingSample"); // LOG 1
-    if (!currentUser) {
-        console.error("Błąd statystyk: Użytkownik niezalogowany w momencie logowania próbki."); // LOG 2
-        return;
-    }
-
+    if (!currentUser) return;
     const sampleData = {
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         symbol: symbol,
         source: source
     };
-
-    const samplesRef = database.ref(`training_samples/${currentUser.uid}`);
-    console.log("Zapisuję do ścieżki w Firebase:", samplesRef.toString()); // LOG 3
-
-    samplesRef.push(sampleData)
-        .then(() => console.log(`--> SUKCES: Zapisano próbkę w statystykach: ${symbol}`)) // LOG 4
-        .catch(error => console.error("--> BŁĄD ZAPISU DO STATYSTYK:", error)); // LOG 5
+    database.ref(`training_samples/${currentUser.uid}`).push(sampleData);
 }
 
 // --- ZARZĄDZANIE STANEM LOGOWANIA ---
@@ -265,21 +251,21 @@ async function handleLoggedInState(user) {
   await loadModelFromFirebase();
 }
 
+// --- INICJALIZACJA APLIKACJI ---
 async function main() {
-  const classificationModelsLoaded = await loadClassificationModels();
   const faceDetectorModelLoaded = await loadFaceDetectorModel();
-  const objectDetectorModelLoaded = await loadObjectDetectorModel();
-  if (classificationModelsLoaded && faceDetectorModelLoaded && objectDetectorModelLoaded) {
-    status.textContent = "Wszystkie modele gotowe. Zaloguj się, aby rozpocząć.";
+  const classificationModelsLoaded = await loadClassificationModels();
+  if (classificationModelsLoaded && faceDetectorModelLoaded) {
+    status.textContent = "Modele gotowe. Zaloguj się, aby rozpocząć.";
     firebase.auth().onAuthStateChanged(user => {
       if (user) { handleLoggedInState(user); } else { handleLoggedOutState(); }
     });
   } else {
-      status.textContent = "Błąd krytyczny. Nie udało się załadować wszystkich modeli AI.";
+      status.textContent = "Błąd krytyczny ładowania modeli AI.";
   }
 }
 
-// --- EVENT LISTENERS ---
+// Event Listeners
 const againBtn = document.getElementById('againBtn');
 if (againBtn) { againBtn.addEventListener('click', () => console.log("'Jeszcze raz' clicked")); }
 startBtn.addEventListener('click', startCamera);
@@ -290,5 +276,5 @@ classButtons.forEach(btn => {
 });
 predictBtn.addEventListener('click', predict);
 
-// --- START ---
+// Start!
 main();
