@@ -89,7 +89,6 @@ button:disabled {
   justify-content: center;
 }
 
-/* Przywracamy widoczność sekcji symboli */
 .symbol-section {
     display: flex;
     flex-direction: column;
@@ -197,4 +196,16 @@ button:disabled {
 
 #version-info span {
   display: block;
+}
+
+/* DODANY STYL DLA LINKU DO STATYSTYK */
+.stats-link {
+    color: #38bdf8;
+    text-decoration: none;
+    margin-top: 8px;
+    display: inline-block;
+}
+
+.stats-link:hover {
+    text-decoration: underline;
 }
