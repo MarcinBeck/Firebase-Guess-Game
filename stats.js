@@ -1,142 +1,149 @@
 'use strict';
 
-window.addEventListener('DOMContentLoaded', () => {
+// ZMIANA: Konfiguracja i inicjalizacja Firebase przeniesiona tutaj
+const firebaseConfig = {
+    apiKey: "AIzaSyDgnmnrBiqwFuFcEDpKsG_7hP2c8C4t30E",
+    authDomain: "guess-game-35a3b.firebaseapp.com",
+    databaseURL: "https://guess-5d206-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "guess-game-35a3b",
+    storageBucket: "guess-game-35a3b.appspot.com",
+    messagingSenderId: "1083984624029",
+    appId: "1:1083984624029:web:9e5f5f4b5d2e0a2c3d4f5e"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
-    // --- ELEMENTY UI ---
-    const totalSamplesEl = document.getElementById('total-samples');
-    const manualSamplesEl = document.getElementById('manual-samples');
-    const correctionSamplesEl = document.getElementById('correction-samples');
-    const totalPredictionsEl = document.getElementById('total-predictions');
-    const modelAccuracyEl = document.getElementById('model-accuracy');
-    const statsContainer = document.querySelector('.stats-container');
-    const accuracyChartCtx = document.getElementById('accuracyChart').getContext('2d');
+// --- ELEMENTY UI ---
+const totalSamplesEl = document.getElementById('total-samples');
+const manualSamplesEl = document.getElementById('manual-samples');
+const correctionSamplesEl = document.getElementById('correction-samples');
+const totalPredictionsEl = document.getElementById('total-predictions');
+const modelAccuracyEl = document.getElementById('model-accuracy');
+const statsContainer = document.querySelector('.stats-container');
+const accuracyChartCtx = document.getElementById('accuracyChart').getContext('2d');
 
-    let accuracyChart;
+let accuracyChart;
 
-    const database = firebase.database();
+firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+        listenForStats(user.uid);
+    } else {
+        statsContainer.innerHTML = `
+            <h1>Statystyki</h1>
+            <p>Aby zobaczyć statystyki, musisz być zalogowany.</p>
+            <p style="margin-top: 4rem; text-align: center;"><a href="index.html">Wróć do aplikacji</a></p>
+        `;
+    }
+});
 
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            listenForStats(user.uid);
-        } else {
-            statsContainer.innerHTML = `
-                <h1>Statystyki</h1>
-                <p>Aby zobaczyć statystyki, musisz być zalogowany.</p>
-                <p style="margin-top: 4rem; text-align: center;"><a href="index.html">Wróć do aplikacji</a></p>
-            `;
+function listenForStats(uid) {
+    const samplesRef = database.ref(`training_samples/${uid}`);
+    const predictionsRef = database.ref(`prediction_attempts/${uid}`);
+
+    Promise.all([
+        samplesRef.once('value'),
+        predictionsRef.once('value')
+    ]).then(([samplesSnapshot, predictionsSnapshot]) => {
+        const samples = [];
+        samplesSnapshot.forEach(child => { samples.push({ id: child.key, ...child.val() }); });
+
+        const predictions = [];
+        predictionsSnapshot.forEach(child => { predictions.push({ id: child.key, ...child.val() }); });
+
+        updateSamplesSummary(samples);
+        updatePredictionsSummary(predictions);
+        updateAccuracyChart(samples, predictions);
+    });
+}
+
+function updateSamplesSummary(samples) {
+    totalSamplesEl.textContent = samples.length;
+    const manualSamples = samples.filter(s => s.source === 'manual').length;
+    const correctionSamples = samples.filter(s => s.source === 'correction').length;
+    manualSamplesEl.textContent = manualSamples;
+    correctionSamplesEl.textContent = correctionSamples;
+}
+
+function updatePredictionsSummary(predictions) {
+    totalPredictionsEl.textContent = predictions.length;
+    const correctPredictions = predictions.filter(p => p.wasCorrect).length;
+    const accuracy = (predictions.length > 0) ? (correctPredictions / predictions.length * 100) : 0;
+    modelAccuracyEl.textContent = `${accuracy.toFixed(1)}%`;
+}
+
+function updateAccuracyChart(samples, predictions) {
+    if (predictions.length === 0) {
+        if (accuracyChart) accuracyChart.destroy();
+        return;
+    };
+
+    const timeline = [
+        ...samples.map(s => ({ ...s, type: 'sample' })),
+        ...predictions.map(p => ({ ...p, type: 'prediction' }))
+    ].sort((a, b) => a.timestamp - b.timestamp);
+
+    let sampleCount = 0;
+    const intervalSize = 5;
+    const accuracyData = [];
+    let intervalPredictions = [];
+
+    timeline.forEach(event => {
+        if (event.type === 'sample') {
+            sampleCount++;
+        }
+        if (event.type === 'prediction') {
+            intervalPredictions.push(event);
+        }
+
+        if (sampleCount > 0 && sampleCount % intervalSize === 0 && sampleCount !== (Math.floor(timeline.filter(e => e.type === 'sample').length / intervalSize) * intervalSize) ) {
+            if (intervalPredictions.length > 0) {
+                const correct = intervalPredictions.filter(p => p.wasCorrect).length;
+                const total = intervalPredictions.length;
+                const accuracy = (correct / total) * 100;
+                
+                const label = `${sampleCount - intervalSize}-${sampleCount - 1}`;
+                accuracyData.push({ x: label, y: accuracy });
+            }
+            intervalPredictions = [];
         }
     });
 
-    function listenForStats(uid) {
-        const samplesRef = database.ref(`training_samples/${uid}`);
-        const predictionsRef = database.ref(`prediction_attempts/${uid}`);
-
-        Promise.all([
-            samplesRef.once('value'),
-            predictionsRef.once('value')
-        ]).then(([samplesSnapshot, predictionsSnapshot]) => {
-            const samples = [];
-            samplesSnapshot.forEach(child => { samples.push({ id: child.key, ...child.val() }); });
-
-            const predictions = [];
-            predictionsSnapshot.forEach(child => { predictions.push({ id: child.key, ...child.val() }); });
-
-            updateSamplesSummary(samples);
-            updatePredictionsSummary(predictions);
-            updateAccuracyChart(samples, predictions);
-        });
+    if (intervalPredictions.length > 0) {
+        const correct = intervalPredictions.filter(p => p.wasCorrect).length;
+        const total = intervalPredictions.length;
+        const accuracy = (correct / total) * 100;
+        const startInterval = Math.floor(sampleCount / intervalSize) * intervalSize;
+        const label = `${startInterval}-teraz`;
+        accuracyData.push({ x: label, y: accuracy });
     }
+    
+    if (accuracyChart) accuracyChart.destroy();
 
-
-    function updateSamplesSummary(samples) {
-        totalSamplesEl.textContent = samples.length;
-        const manualSamples = samples.filter(s => s.source === 'manual').length;
-        const correctionSamples = samples.filter(s => s.source === 'correction').length;
-        manualSamplesEl.textContent = manualSamples;
-        correctionSamplesEl.textContent = correctionSamples;
-    }
-
-    function updatePredictionsSummary(predictions) {
-        totalPredictionsEl.textContent = predictions.length;
-        const correctPredictions = predictions.filter(p => p.wasCorrect).length;
-        const accuracy = (predictions.length > 0) ? (correctPredictions / predictions.length * 100) : 0;
-        modelAccuracyEl.textContent = `${accuracy.toFixed(1)}%`;
-    }
-
-    function updateAccuracyChart(samples, predictions) {
-        if (predictions.length === 0) {
-            if (accuracyChart) accuracyChart.destroy();
-            return;
-        };
-
-        const timeline = [
-            ...samples.map(s => ({ ...s, type: 'sample' })),
-            ...predictions.map(p => ({ ...p, type: 'prediction' }))
-        ].sort((a, b) => a.timestamp - b.timestamp);
-
-        let sampleCount = 0;
-        const intervalSize = 5;
-        const accuracyData = [];
-        let intervalPredictions = [];
-
-        timeline.forEach(event => {
-            if (event.type === 'sample') {
-                sampleCount++;
-            }
-            if (event.type === 'prediction') {
-                intervalPredictions.push(event);
-            }
-
-            if (sampleCount > 0 && sampleCount % intervalSize === 0 && sampleCount !== (Math.floor(timeline.filter(e => e.type === 'sample').length / intervalSize) * intervalSize) ) {
-                if (intervalPredictions.length > 0) {
-                    const correct = intervalPredictions.filter(p => p.wasCorrect).length;
-                    const total = intervalPredictions.length;
-                    const accuracy = (correct / total) * 100;
-                    
-                    const label = `${sampleCount - intervalSize}-${sampleCount - 1}`;
-                    accuracyData.push({ x: label, y: accuracy });
-                }
-                intervalPredictions = [];
-            }
-        });
-
-        if (intervalPredictions.length > 0) {
-            const correct = intervalPredictions.filter(p => p.wasCorrect).length;
-            const total = intervalPredictions.length;
-            const accuracy = (correct / total) * 100;
-            const startInterval = Math.floor(sampleCount / intervalSize) * intervalSize;
-            const label = `${startInterval}-teraz`;
-            accuracyData.push({ x: label, y: accuracy });
-        }
-        
-        if (accuracyChart) accuracyChart.destroy();
-
-        accuracyChart = new Chart(accuracyChartCtx, {
-            type: 'line',
-            data: {
-                datasets: [
-                {
-                    label: 'Skuteczność w przedziale',
-                    data: accuracyData,
-                    borderColor: '#38bdf8',
-                    tension: 0.1,
-                    fill: false
-                },
-                {
-                    label: 'Poziom losowy (33.3%)',
-                    data: accuracyData.map(d => ({ x: d.x, y: 33.3 })),
-                    borderColor: '#f472b6',
-                    borderDash: [5, 5],
-                    fill: false,
-                    pointRadius: 0
-                }]
+    accuracyChart = new Chart(accuracyChartCtx, {
+        type: 'line',
+        data: {
+            datasets: [
+            {
+                label: 'Skuteczność w przedziale',
+                data: accuracyData,
+                borderColor: '#38bdf8',
+                tension: 0.1,
+                fill: false
             },
-            options: {
-                scales: {
-                    x: { title: { display: true, text: 'Liczba zebranych próbek (w przedziałach)' } },
-                    y: { beginAtZero: true, max: 100, title: { display: true, text: 'Skuteczność (%)' } }
-                }
+            {
+                label: 'Poziom losowy (33.3%)',
+                data: accuracyData.map(d => ({ x: d.x, y: 33.3 })),
+                borderColor: '#f472b6',
+                borderDash: [5, 5],
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            scales: {
+                x: { title: { display: true, text: 'Liczba zebranych próbek (w przedziałach)' } },
+                y: { beginAtZero: true, max: 100, title: { display: true, text: 'Skuteczność (%)' } }
             }
-        });
-    }
-});
+        }
+    });
+}
