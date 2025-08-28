@@ -7,10 +7,11 @@ const correctionSamplesEl = document.getElementById('correction-samples');
 const totalPredictionsEl = document.getElementById('total-predictions');
 const modelAccuracyEl = document.getElementById('model-accuracy');
 const statsContainer = document.querySelector('.stats-container');
-const samplesChartCtx = document.getElementById('samplesChart').getContext('2d');
+// USUNIĘTO: const samplesChartCtx
 const accuracyChartCtx = document.getElementById('accuracyChart').getContext('2d');
 
-let samplesChart, accuracyChart;
+// USUNIĘTO: let samplesChart
+let accuracyChart;
 
 const database = firebase.database();
 
@@ -18,16 +19,18 @@ firebase.auth().onAuthStateChanged(user => {
     if (user) {
         listenForStats(user.uid);
     } else {
-        // ... (bez zmian)
+        statsContainer.innerHTML = `
+            <h1>Statystyki</h1>
+            <p>Aby zobaczyć statystyki, musisz być zalogowany.</p>
+            <p style="margin-top: 4rem; text-align: center;"><a href="index.html">Wróć do aplikacji</a></p>
+        `;
     }
 });
 
-// ZMIANA: Ta funkcja jest teraz znacznie bardziej rozbudowana
 function listenForStats(uid) {
     const samplesRef = database.ref(`training_samples/${uid}`);
     const predictionsRef = database.ref(`prediction_attempts/${uid}`);
 
-    // Wspólny listener, który pobierze oba zestawy danych
     Promise.all([
         samplesRef.once('value'),
         predictionsRef.once('value')
@@ -38,12 +41,9 @@ function listenForStats(uid) {
         const predictions = [];
         predictionsSnapshot.forEach(child => { predictions.push({ id: child.key, ...child.val() }); });
 
-        // Aktualizuj podsumowanie i proste wykresy
         updateSamplesSummary(samples);
         updatePredictionsSummary(predictions);
-        updateSamplesChart(samples);
-        
-        // Oblicz i narysuj nowy, złożony wykres skuteczności
+        // USUNIĘTO: wywołanie updateSamplesChart(samples);
         updateAccuracyChart(samples, predictions);
     });
 }
@@ -64,24 +64,19 @@ function updatePredictionsSummary(predictions) {
     modelAccuracyEl.textContent = `${accuracy.toFixed(1)}%`;
 }
 
-function updateSamplesChart(samples) {
-    // ... (bez zmian)
-}
+// USUNIĘTO: Cała funkcja updateSamplesChart została usunięta.
 
-// ZMIANA: Całkowicie nowa logika dla wykresu skuteczności
 function updateAccuracyChart(samples, predictions) {
     if (predictions.length === 0) {
         if (accuracyChart) accuracyChart.destroy();
         return;
     };
 
-    // 1. Tworzymy jedną oś czasu ze wszystkich zdarzeń
     const timeline = [
         ...samples.map(s => ({ ...s, type: 'sample' })),
         ...predictions.map(p => ({ ...p, type: 'prediction' }))
     ].sort((a, b) => a.timestamp - b.timestamp);
 
-    // 2. Przetwarzamy oś czasu, aby stworzyć punkty danych dla wykresu
     let sampleCount = 0;
     const intervalSize = 5;
     const accuracyData = [];
@@ -95,7 +90,6 @@ function updateAccuracyChart(samples, predictions) {
             intervalPredictions.push(event);
         }
 
-        // Sprawdzamy, czy zamknęliśmy przedział 5 próbek
         if (sampleCount > 0 && sampleCount % intervalSize === 0) {
             if (intervalPredictions.length > 0) {
                 const correct = intervalPredictions.filter(p => p.wasCorrect).length;
@@ -105,11 +99,10 @@ function updateAccuracyChart(samples, predictions) {
                 const label = `${sampleCount - intervalSize}-${sampleCount - 1}`;
                 accuracyData.push({ x: label, y: accuracy });
             }
-            intervalPredictions = []; // Resetujemy dla następnego przedziału
+            intervalPredictions = [];
         }
     });
 
-    // Dodajemy ostatni, niezamknięty przedział
     if (intervalPredictions.length > 0) {
         const correct = intervalPredictions.filter(p => p.wasCorrect).length;
         const total = intervalPredictions.length;
@@ -119,7 +112,6 @@ function updateAccuracyChart(samples, predictions) {
         accuracyData.push({ x: label, y: accuracy });
     }
     
-    // 3. Rysujemy wykres
     if (accuracyChart) accuracyChart.destroy();
 
     accuracyChart = new Chart(accuracyChartCtx, {
@@ -150,7 +142,3 @@ function updateAccuracyChart(samples, predictions) {
         }
     });
 }
-
-// Skopiuj pełną, niezmienioną funkcję updateSamplesChart stąd:
-// https://github.com/MarcinBeck/Firebase-Guess-Game/blob/main/stats.js (lub z naszej poprzedniej rozmowy)
-// ...
