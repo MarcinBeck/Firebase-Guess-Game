@@ -59,6 +59,7 @@ function listenForStats(uid) {
             updateSamplesSummary(samples);
             updatePredictionsSummary(predictions);
             updateAccuracyChart(samples, predictions);
+            sortTimeline();
             renderTable(); // Wywołaj renderowanie tabeli
         });
     });
@@ -225,6 +226,73 @@ nextPageBtn.addEventListener('click', () => {
         renderTable();
     }
 });
+
+    // Nasłuchuj na kliknięcia w nagłówek tabeli
+document.querySelector('.history-table thead').addEventListener('click', (e) => {
+    const header = e.target.closest('th');
+    if (!header || !header.classList.contains('sortable')) return;
+
+    const sortColumn = header.dataset.sort;
+
+    if (currentSort.column === sortColumn) {
+        // Jeśli kliknięto tę samą kolumnę, odwróć kierunek
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        // Jeśli nowa kolumna, ustaw domyślny kierunek
+        currentSort.column = sortColumn;
+        currentSort.direction = 'asc';
+    }
+
+    currentPage = 1; // Zresetuj paginację
+    sortTimeline();
+    renderTable();
+});
+
+function sortTimeline() {
+    const { column, direction } = currentSort;
+    const dir = direction === 'asc' ? 1 : -1;
+
+    fullTimeline.sort((a, b) => {
+        let valA, valB;
+
+        // Mapowanie kolumn na dane
+        if (column === 'lp') {
+            valA = fullTimeline.indexOf(a);
+            valB = fullTimeline.indexOf(b);
+        } else if (column === 'timestamp') {
+            valA = a.timestamp;
+            valB = b.timestamp;
+        } else if (column === 'type') {
+            valA = a.type;
+            valB = b.type;
+        } else if (column === 'shape') {
+            valA = a.symbol || a.predictedSymbol;
+            valB = b.symbol || b.predictedSymbol;
+        }
+
+        if (valA < valB) return -1 * dir;
+        if (valA > valB) return 1 * dir;
+        return 0;
+    });
+
+    updateSortIndicators();
+}
+
+function updateSortIndicators() {
+    document.querySelectorAll('.history-table th.sortable').forEach(th => {
+        // Usuń istniejące strzałki
+        const existingArrow = th.querySelector('.sort-arrow');
+        if (existingArrow) existingArrow.remove();
+
+        // Dodaj strzałkę do aktywnej kolumny
+        if (th.dataset.sort === currentSort.column) {
+            const arrow = document.createElement('span');
+            arrow.className = 'sort-arrow';
+            arrow.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+            th.appendChild(arrow);
+        }
+    });
+}
 
     
 });
