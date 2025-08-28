@@ -39,13 +39,27 @@ main {
   gap: 1.5rem;
 }
 
-video {
+/* POPRAWKA: Dodajemy style z pliku testowego */
+.video-container {
+  position: relative;
   width: 100%;
   max-width: 500px;
+}
+
+video {
+  width: 100%;
   border: 2px solid #1f2937;
   border-radius: 12px;
   background: #000;
 }
+
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
 
 button {
   background: #1f2937;
@@ -100,7 +114,6 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
-/* ZMIENIONO STYL PRZYCISKU NA SUBTELNIEJSZY LINK */
 .clear-button {
   font-size: 1.4rem;
   padding: 0;
@@ -160,15 +173,4 @@ button:disabled {
   text-decoration: underline;
   padding: 0;
   color: #aaa;
-}
-.video-container {
-  position: relative;
-  width: 100%;
-  max-width: 500px;
-}
-
-#overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
 }
