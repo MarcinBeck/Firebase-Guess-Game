@@ -79,6 +79,9 @@ async function runDetectionLoop() {
     
     // 3. Rysowanie
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+    lastDetectedCardBox = null;
+classButtons.forEach(btn => btn.disabled = true);
+predictBtn.disabled = true;
     
     faces.forEach(face => {
         const start = face.topLeft;
@@ -90,14 +93,16 @@ async function runDetectionLoop() {
     });
 
     objects.forEach(object => {
-      if (object.class === 'book') {
-        overlayCtx.strokeStyle = '#facc15';
-        overlayCtx.lineWidth = 4;
-        overlayCtx.strokeRect(object.bbox[0], object.bbox[1], object.bbox[2], object.bbox[3]);
-        overlayCtx.fillStyle = '#facc15';
-        overlayCtx.font = '16px sans-serif';
-        overlayCtx.fillText('Kartka?', object.bbox[0] + 5, object.bbox[1] + 20);
-      }
+        if (object.class === 'book') {
+          overlayCtx.strokeStyle = '#facc15'; // Żółty kolor
+          overlayCtx.lineWidth = 4;
+          overlayCtx.strokeRect(object.bbox[0], object.bbox[1], object.bbox[2], object.bbox[3]);
+        
+          // Dodanie etykiety
+          overlayCtx.fillStyle = '#facc15';
+          overlayCtx.font = '16px sans-serif';
+          overlayCtx.fillText('Kartka?', object.bbox[0] + 5, object.bbox[1] + 20);
+        }
     });
 
     detectionIntervalId = setTimeout(runDetectionLoop, 400);
@@ -302,4 +307,5 @@ predictBtn.addEventListener('click', predict);
 
 // Start!
 main();
+
 
