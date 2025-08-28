@@ -2,7 +2,7 @@
 
 window.addEventListener('DOMContentLoaded', () => {
     //
-    // CAŁA POPRZEDNIA ZAWARTOŚĆ PLIKU ZNAJDUJE SIĘ TERAZ TUTAJ
+    // CAŁA LOGIKA APLIKACJI ZNAJDUJE SIĘ WEWNĄTRZ TEGO LISTNERA
     //
 
     // --- ELEMENTY UI ---
