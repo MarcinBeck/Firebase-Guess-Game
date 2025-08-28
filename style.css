@@ -1,9 +1,9 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { font-size: 62.5%; }
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #e5e7eb; background-color: #0f172a; text-align: center; }
-header { position: relative; padding: 2rem; border-bottom: 2px solid #1f2937; width: 100%; }
-h1 { font-size: 3rem; }
-main { display: flex; justify-content: center; padding: 2rem; }
+header { position: relative; padding: 2rem; border-bottom: 2px solid #1f2937; width: 100%; transition: opacity 0.5s ease-in-out; }
+main { display: flex; justify-content: center; padding: 2rem; transition: opacity 0.5s ease-in-out; }
+.content-hidden { opacity: 0; pointer-events: none; }
 .app-container { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
 .video-container { display: grid; width: 100%; max-width: 500px; }
 video, #overlay { grid-area: 1 / 1 / 2 / 2; width: 100%; border-radius: 12px; }
@@ -25,7 +25,6 @@ button:disabled { background: #1e293b; color: #475569; cursor: not-allowed; bord
 .clear-button:hover:not(:disabled) { color: #e5e7eb; }
 .gallery { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; border: 1px solid #1f2937; padding: 1rem; border-radius: 8px; min-height: 112px; }
 .gallery img { width: 100px; height: 100px; object-fit: cover; border: 2px solid #374151; border-radius: 8px; }
-/* DODANY STYL DLA INFORMACJI W GALERII */
 .gallery-info { font-size: 1.4rem; color: #64748b; padding: 2rem; }
 #auth-container { position: absolute; top: 2rem; right: 2rem; font-size: 1.6rem; text-align: right; }
 #auth-container .welcome-message { display: block; margin-bottom: 8px; }
@@ -35,3 +34,8 @@ button:disabled { background: #1e293b; color: #475569; cursor: not-allowed; bord
 #version-info span, #version-info a { display: block; }
 .stats-link { color: #38bdf8; text-decoration: none; margin-top: 8px; display: inline-block; }
 .stats-link:hover { text-decoration: underline; }
+#loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0f172a; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease-in-out; }
+#loader.fade-out { opacity: 0; }
+#loader p { font-size: 1.6rem; color: #94a3b8; margin-top: 2rem; }
+.spinner { width: 60px; height: 60px; border: 5px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
