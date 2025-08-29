@@ -3,6 +3,7 @@
 window.addEventListener('DOMContentLoaded', () => {
 
     const loader = document.getElementById('loader');
+    const loaderStatus = document.getElementById('loader-status');
     const header = document.querySelector('header');
     const mainContent = document.querySelector('main');
     const authContainer = document.getElementById('auth-container');
@@ -346,4 +347,5 @@ function startCamera() {
     // --- START ---
     main();
 });
+
 
