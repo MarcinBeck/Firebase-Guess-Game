@@ -128,16 +128,19 @@ button:disabled { background: #1e293b; color: #475569; cursor: not-allowed; bord
     color: #94a3b8;
 }
 
+/* --- Style do ukrywania/pokazywania sekcji symboli --- */
 .symbol-section {
-    transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
-    opacity: 1;
-    transform: translateY(0);
+    /* Przywracamy oryginalne style flexbox dla widocznego stanu */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
 }
 
 .symbol-section.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(20px);
+    /* Zamiast opacity, teraz całkowicie ukrywamy element */
+    display: none;
 }
 
 
