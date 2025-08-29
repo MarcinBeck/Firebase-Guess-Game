@@ -2,9 +2,7 @@
 
 window.addEventListener('DOMContentLoaded', () => {
 
-    // --- ELEMENTY UI ---
     const loader = document.getElementById('loader');
-    const loaderStatus = document.getElementById('loader-status');
     const header = document.querySelector('header');
     const mainContent = document.querySelector('main');
     const authContainer = document.getElementById('auth-container');
@@ -22,7 +20,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const overlayCtx = overlay.getContext('2d');
     const feedbackContainer = document.getElementById('feedback-container');
 
-    // --- ZMIENNE GLOBALNE ---
     let currentUser = null;
     let currentStream = null;
     let classifier;
@@ -87,28 +84,26 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    function startCamera() {
+function startCamera() {
       cameraToggleBtn.disabled = true;
       cameraToggleBtn.textContent = 'Ładowanie...';
-
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
           currentStream = stream;
           video.srcObject = stream;
           video.play();
-
           video.addEventListener('loadeddata', () => {
               overlay.width = video.videoWidth;
               overlay.height = video.videoHeight;
               runDetectionLoop();
           });
-
           isCameraOn = true;
           cameraToggleBtn.textContent = 'Stop kamera';
           cameraToggleBtn.disabled = false;
+          // POKAZUJEMY SEKCJE
           symbolSection.classList.remove('hidden');
         }).catch(err => {
-            showToast("Błąd kamery: ".concat(err.message), 'error');
+            alert("Błąd kamery: ".concat(err.message)); // Zmienimy to na toasty później
             cameraToggleBtn.textContent = 'Start kamera';
             cameraToggleBtn.disabled = false;
         });
@@ -118,10 +113,10 @@ window.addEventListener('DOMContentLoaded', () => {
       if (detectionIntervalId) { clearTimeout(detectionIntervalId); detectionIntervalId = null; }
       if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
       overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-      
       isCameraOn = false;
       cameraToggleBtn.textContent = 'Start kamera';
       cameraToggleBtn.disabled = false;
+      // UKRYWAMY SEKCJE
       symbolSection.classList.add('hidden');
       classButtons.forEach(btn => btn.disabled = true);
       predictBtn.disabled = true;
@@ -351,3 +346,4 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- START ---
     main();
 });
+
