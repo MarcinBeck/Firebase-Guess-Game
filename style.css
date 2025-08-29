@@ -71,4 +71,60 @@ button:disabled { background: #1e293b; color: #475569; cursor: not-allowed; bord
         transform: translateX(0);
     }
 }
+/* --- STYLE DLA STRONY GŁÓWNEJ (HUB) --- */
+.hub-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.logo {
+    font-size: 8rem;
+    margin-bottom: 1rem;
+}
+
+.hub-description {
+    font-size: 1.8rem;
+    color: #94a3b8;
+    max-width: 400px;
+}
+
+.hub-actions {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.hub-card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 2.5rem;
+    width: 280px;
+    text-align: left;
+    text-decoration: none;
+    color: #e5e7eb;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hub-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.hub-card h2 {
+    font-size: 2.2rem;
+    color: #38bdf8;
+    margin-bottom: 1rem;
+}
+
+.hub-card p {
+    font-size: 1.4rem;
+    line-height: 1.6;
+    color: #94a3b8;
+}
 
