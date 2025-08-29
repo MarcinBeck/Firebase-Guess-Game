@@ -8,8 +8,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const header = document.querySelector('header');
     const mainContent = document.querySelector('main');
     const authContainer = document.getElementById('auth-container');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
+    const cameraToggleBtn = document.getElementById('camera-toggle-btn');
+    const symbolSection = document.querySelector('.symbol-section');
     const classButtons = document.querySelectorAll('.classes button');
     const predictBtn = document.getElementById('predictBtn');
     const video = document.getElementById('video');
@@ -31,6 +31,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let blazeFaceModel;
     let detectionIntervalId = null;
     let lastDetectedFace = null;
+    let isCameraOn = false;
 
     // --- FUNKCJE AI i KAMERY ---
 
@@ -62,7 +63,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function runDetectionLoop() {
-      if (blazeFaceModel && !video.paused && !video.ended) {
+      if (isCameraOn && blazeFaceModel && !video.paused && !video.ended) {
         const faces = await blazeFaceModel.estimateFaces(video, false);
         overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
         if (faces.length > 0) {
@@ -87,31 +88,41 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function startCamera() {
-      stopCamera();
+      cameraToggleBtn.disabled = true;
+      cameraToggleBtn.textContent = 'Ładowanie...';
+
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
           currentStream = stream;
           video.srcObject = stream;
           video.play();
-          const readyCheckInterval = setInterval(() => {
-              if (video.readyState >= 3) {
-                  clearInterval(readyCheckInterval);
-                  overlay.width = video.videoWidth;
-                  overlay.height = video.videoHeight;
-                  runDetectionLoop();
-              }
-          }, 200);
-          startBtn.disabled = true;
-          stopBtn.disabled = false;
-        }).catch(err => alert("Błąd kamery: ".concat(err.message)));
+
+          video.addEventListener('loadeddata', () => {
+              overlay.width = video.videoWidth;
+              overlay.height = video.videoHeight;
+              runDetectionLoop();
+          });
+
+          isCameraOn = true;
+          cameraToggleBtn.textContent = 'Stop kamera';
+          cameraToggleBtn.disabled = false;
+          symbolSection.classList.remove('hidden');
+        }).catch(err => {
+            showToast("Błąd kamery: ".concat(err.message), 'error');
+            cameraToggleBtn.textContent = 'Start kamera';
+            cameraToggleBtn.disabled = false;
+        });
     }
 
     function stopCamera() {
       if (detectionIntervalId) { clearTimeout(detectionIntervalId); detectionIntervalId = null; }
       if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
       overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
+      
+      isCameraOn = false;
+      cameraToggleBtn.textContent = 'Start kamera';
+      cameraToggleBtn.disabled = false;
+      symbolSection.classList.add('hidden');
       classButtons.forEach(btn => btn.disabled = true);
       predictBtn.disabled = true;
     }
@@ -167,7 +178,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- GŁÓWNE FUNKCJE APLIKACJI ---
 
     async function takeSnapshot(label) {
-      if (!net || !classifier || !lastDetectedFace) { alert("Najpierw pokaż twarz do kamery!"); return; }
+      if (!net || !classifier || !lastDetectedFace) { showToast("Najpierw pokaż twarz do kamery!", 'info'); return; }
       const faceBox = lastDetectedFace;
       const cropStartX = faceBox.topLeft[0];
       const cropStartY = faceBox.bottomRight[1];
@@ -189,7 +200,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     async function predict() {
       if (!net || !classifier || !lastDetectedFace) return;
-      if (classifier.getNumClasses() < classNames.length) { predictionEl.textContent = `Najpierw dodaj próbki dla wszystkich ${classNames.length} symboli!`; return; }
+      if (classifier.getNumClasses() < classNames.length) { showToast(`Najpierw dodaj próbki dla wszystkich ${classNames.length} symboli!`, 'info'); return; }
       predictBtn.disabled = true;
       classButtons.forEach(btn => btn.disabled = true);
       const faceBox = lastDetectedFace;
@@ -221,27 +232,21 @@ window.addEventListener('DOMContentLoaded', () => {
       const samplesPath = `training_samples/${currentUser.uid}`;
       const snapshot = await database.ref(samplesPath).once('value');
       const allSamples = snapshot.val();
-
       if (allSamples) {
         status.textContent = 'Odtwarzanie modelu z zapisanych próbek...';
         let processedCount = 0;
         for (const key of Object.keys(allSamples)) {
             const sample = allSamples[key];
-            if (sample.tensor) { // Zabezpieczenie na wypadek starych danych bez tensora
-                // KLUCZOWA POPRAWKA: Używamy tf.tensor2d z konkretnym kształtem
+            if (sample.tensor) {
                 const tensor = tf.tensor2d(sample.tensor, [1, 1024]);
                 classifier.addExample(tensor, sample.symbol);
                 processedCount++;
             }
         }
-        console.log(`Odtworzono model z ${processedCount} próbek.`);
         gallery.innerHTML = `<p class="gallery-info">Model wczytany z ${processedCount} próbek. Galeria jest pusta, ponieważ obrazki nie są zapisywane.</p>`;
-      } else {
-        console.log("Nie znaleziono zapisanych próbek dla tego użytkownika.");
       }
       updateStatus();
     }
-
     async function clearData() {
         if (!confirm("Czy na pewno chcesz usunąć wszystkie zebrane próbki?")) return;
         try {
@@ -255,7 +260,6 @@ window.addEventListener('DOMContentLoaded', () => {
           updateStatus();
         } catch (error) { console.error("Błąd podczas czyszczenia danych:", error); }
     }
-
     function logTrainingSample(symbol, source, logits) {
         if (!currentUser || !logits) return;
         const sampleData = {
@@ -266,7 +270,6 @@ window.addEventListener('DOMContentLoaded', () => {
         };
         database.ref(`training_samples/${currentUser.uid}`).push(sampleData);
     }
-
     function logPredictionAttempt(predictedSymbol, wasCorrect, correctSymbol = null) {
         if (!currentUser) return;
         const attemptData = {
@@ -276,6 +279,20 @@ window.addEventListener('DOMContentLoaded', () => {
         };
         if (!wasCorrect && correctSymbol) { attemptData.correctSymbol = correctSymbol; }
         database.ref(`prediction_attempts/${currentUser.uid}`).push(attemptData);
+    }
+    
+    // --- UX ---
+    function showToast(message, type = 'info', duration = 3000) {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.5s forwards';
+            toast.addEventListener('animationend', () => toast.remove());
+        }, duration);
     }
 
     // --- ZARZĄDZANIE STANEM LOGOWANIA ---
@@ -318,8 +335,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
-    startBtn.addEventListener('click', startCamera);
-    stopBtn.addEventListener('click', stopCamera);
+    cameraToggleBtn.addEventListener('click', () => {
+        if (isCameraOn) {
+            stopCamera();
+        } else {
+            startCamera();
+        }
+    });
     clearBtn.addEventListener('click', clearData);
     classButtons.forEach(btn => {
       btn.addEventListener('click', () => takeSnapshot(btn.dataset.class));
