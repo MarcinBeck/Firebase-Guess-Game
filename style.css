@@ -127,4 +127,15 @@ button:disabled { background: #1e293b; color: #475569; cursor: not-allowed; bord
     line-height: 1.6;
     color: #94a3b8;
 }
+.symbol-section {
+    transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.symbol-section.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+}
 
