@@ -5,28 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
-    <link rel="stylesheet" href="style.css?v=3.0.2" />
+    <link rel="stylesheet" href="style.css?v=3.0.4">
     <title>AI - Rozpoznawanie Symboli</title>
   </head>
   <body>
-
-    <div id="loader">
-      <div class="spinner"></div>
-      <p id="loader-status">Inicjalizacja aplikacji...</p>
-    </div>
-
-    <header class="content-hidden">
+    <header>
       <div id="version-info">
-        <span>version: 2.2.15</span>
-        <span>28 sierpnia 2025, 13:40</span>
+        <span>version: 3.0.4</span>
+        <span>29 sierpnia 2025, 14:35</span>
         <a href="stats.html" class="stats-link">Statystyki</a>
       </div>
       
       <h1>AI - Rozpoznawanie Symboli</h1>
       <div id="auth-container"></div>
     </header>
-
-    <main class="content-hidden">
+    <main>
       <div class="app-container">
         <div class="video-container">
           <video id="video" autoplay playsinline></video>
@@ -35,8 +28,8 @@
         <div class="controls">
           <button id="camera-toggle-btn">Start kamera</button>
         </div>
-        <div class="symbol-section">
-          <div class="symbol-section hidden"></div>
+
+        <div class="symbol-section hidden">
             <div class="classes">
               <button data-class="KOŁO" disabled>Dodaj KOŁO</button>
               <button data-class="KWADRAT" disabled>Dodaj KWADRAT</button>
@@ -87,6 +80,7 @@
     <script src="script.js"></script>
   </body>
 </html>
+
 
 
 
