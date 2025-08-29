@@ -1,7 +1,9 @@
+console.log("TEST 1: Plik script.js został wczytany przez przeglądarkę.");
+
 'use strict';
 
 window.addEventListener('DOMContentLoaded', () => {
-
+console.log("TEST 2: Event DOMContentLoaded został uruchomiony. Strona jest gotowa.");
     const loader = document.getElementById('loader');
     const loaderStatus = document.getElementById('loader-status');
     const header = document.querySelector('header');
@@ -347,5 +349,6 @@ function startCamera() {
     // --- START ---
     main();
 });
+
 
 
